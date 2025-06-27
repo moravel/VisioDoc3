@@ -130,3 +130,31 @@ class BlurAnnotation(Annotation):
         # by directly manipulating the PIL Image object in main.py before passing
         # it to ImageDraw.Draw.
         pass
+
+class ArrowAnnotation(Annotation):
+    def __init__(self, start_point, end_point, color=(0, 0, 255), thickness=2, tip_length=0.3):
+        super().__init__(color, thickness)
+        self.start_point = start_point
+        self.end_point = end_point
+        self.tip_length = tip_length # Relative to arrow length
+
+    def draw(self, frame):
+        cv2.arrowedLine(frame, self.start_point, self.end_point, self.color, self.thickness, tipLength=self.tip_length)
+
+    def draw_pil(self, draw_obj):
+        pil_color = (self.color[2], self.color[1], self.color[0])
+        draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
+
+        # Calculate arrowhead points for PIL
+        # This is a simplified arrow head, can be improved for better aesthetics
+        angle = np.arctan2(self.end_point[1] - self.start_point[1], self.end_point[0] - self.start_point[0])
+        arrow_size = self.thickness * 5 # Adjust arrow head size based on thickness
+
+        # Points for the arrowhead
+        p1 = (self.end_point[0] - arrow_size * np.cos(angle - np.pi / 6),
+              self.end_point[1] - arrow_size * np.sin(angle - np.pi / 6))
+        p2 = (self.end_point[0] - arrow_size * np.cos(angle + np.pi / 6),
+              self.end_point[1] - arrow_size * np.sin(angle + np.pi / 6))
+
+        draw_obj.line([self.end_point, p1], fill=pil_color, width=self.thickness)
+        draw_obj.line([self.end_point, p2], fill=pil_color, width=self.thickness)
