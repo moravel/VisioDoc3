@@ -7,7 +7,7 @@ import datetime
 import os
 import threading
 import time
-from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation, BlurAnnotation, ArrowAnnotation # Import new annotation classes
+from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation, BlurAnnotation, ArrowAnnotation, HighlightAnnotation # Import new annotation classes
 
 
 class VideoStreamThread(threading.Thread):
@@ -211,6 +211,14 @@ class VisioDoc3(tk.Tk):
                     elif self.current_tool == "arrow":
                         temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
                         temp_annotation.draw(frame)
+                    elif self.current_tool == "highlight":
+                        # Draw a translucent rectangle to indicate the highlight area
+                        overlay = frame.copy()
+                        x1, y1 = self.start_point
+                        x2, y2 = self.end_point
+                        cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 255), -1) # Yellow color, filled
+                        alpha = 0.3 # Transparency factor
+                        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
 
                 # Convertir l'image OpenCV (avec annotations) en format compatible Tkinter
                 rgb_image_annotated = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -253,6 +261,9 @@ class VisioDoc3(tk.Tk):
         elif tool_name == "arrow":
             self.start_point = None
             self.end_point = None
+        elif tool_name == "highlight":
+            self.start_point = None
+            self.end_point = None
 
     def save_image(self):
         if self.video_stream_thread and self.video_stream_thread.is_alive():
@@ -260,8 +271,11 @@ class VisioDoc3(tk.Tk):
             if frame_to_save is not None:
                 # Convertir l'image OpenCV en format PIL
                 img_pil = Image.fromarray(cv2.cvtColor(frame_to_save, cv2.COLOR_BGR2RGB))
+                # Convert to RGBA to support transparency for highlight
+                img_pil = img_pil.convert("RGBA")
 
                 # Dessiner les annotations sur l'image PIL avant de sauvegarder
+                # First, apply blur annotations directly to the image
                 for annotation in self.annotations:
                     if isinstance(annotation, BlurAnnotation):
                         x1, y1 = min(annotation.p1[0], annotation.p2[0]), min(annotation.p1[1], annotation.p2[1])
@@ -279,9 +293,17 @@ class VisioDoc3(tk.Tk):
                             roi = img_pil.crop((x1, y1, x2, y2))
                             blurred_roi = roi.filter(ImageFilter.GaussianBlur(radius=annotation.blur_strength))
                             img_pil.paste(blurred_roi, (x1, y1))
-                    else:
-                        draw = ImageDraw.Draw(img_pil)
+
+                # Create a transparent overlay for drawing other annotations
+                overlay = Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
+                draw = ImageDraw.Draw(overlay)
+
+                for annotation in self.annotations:
+                    if not isinstance(annotation, BlurAnnotation):
                         annotation.draw_pil(draw)
+
+                # Composite the overlay onto the main image
+                img_pil = Image.alpha_composite(img_pil, overlay)
 
                 # Demander à l'utilisateur le chemin de sauvegarde
                 file_path = filedialog.asksaveasfilename(
@@ -446,9 +468,36 @@ class VisioDoc3(tk.Tk):
 
             self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
             self.end_point = self.start_point # Initialize end_point for drag
+        elif self.current_tool == "highlight":
+            self.drawing = True
+            original_width = self.video_stream_thread.get_frame().shape[1]
+            original_height = self.video_stream_thread.get_frame().shape[0]
+            
+            label_width = self.image_label.winfo_width()
+            label_height = self.image_label.winfo_height()
+
+            scale_x = original_width / label_width
+            scale_y = original_height / label_height
+
+            img_ratio = original_width / original_height
+            label_ratio = label_width / label_height
+
+            if img_ratio > label_ratio:
+                scaled_img_width = label_width
+                scaled_img_height = int(label_width / img_ratio)
+                offset_y = (label_height - scaled_img_height) / 2
+                offset_x = 0
+            else:
+                scaled_img_height = label_height
+                scaled_img_width = int(label_height * img_ratio)
+                offset_x = (label_width - scaled_img_width) / 2
+                offset_y = 0
+
+            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+            self.end_point = self.start_point # Initialize end_point for drag
 
     def on_mouse_drag(self, event):
-        if self.drawing and self.current_tool in ["line", "rectangle", "freedraw", "blur", "arrow"]:
+        if self.drawing and self.current_tool in ["line", "rectangle", "freedraw", "blur", "arrow", "highlight"]:
             # Get coordinates relative to the original frame size
             original_width = self.video_stream_thread.get_frame().shape[1]
             original_height = self.video_stream_thread.get_frame().shape[0]
@@ -531,6 +580,8 @@ class VisioDoc3(tk.Tk):
                 self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
             elif self.current_tool == "arrow":
                 self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2))
+            elif self.current_tool == "highlight":
+                self.annotations.append(HighlightAnnotation(self.start_point, self.end_point))
             # Add other tools here
             self.redo_stack.clear() # Clear redo stack on new annotation
 

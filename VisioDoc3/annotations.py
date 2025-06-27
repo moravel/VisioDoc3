@@ -158,3 +158,30 @@ class ArrowAnnotation(Annotation):
 
         draw_obj.line([self.end_point, p1], fill=pil_color, width=self.thickness)
         draw_obj.line([self.end_point, p2], fill=pil_color, width=self.thickness)
+
+class HighlightAnnotation(Annotation):
+    def __init__(self, p1, p2, color=(255, 255, 0), opacity=0.3):
+        super().__init__(color)
+        self.p1 = p1
+        self.p2 = p2
+        self.opacity = opacity
+
+    def draw(self, frame):
+        overlay = frame.copy()
+        x1, y1 = min(self.p1[0], self.p2[0]), min(self.p1[1], self.p2[1])
+        x2, y2 = max(self.p1[0], self.p2[0]), max(self.p1[1], self.p2[1])
+
+        # Ensure coordinates are within frame boundaries
+        h, w, _ = frame.shape
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(w, x2)
+        y2 = min(h, y2)
+
+        if x2 > x1 and y2 > y1:
+            cv2.rectangle(overlay, (x1, y1), (x2, y2), self.color, -1)
+            cv2.addWeighted(overlay, self.opacity, frame, 1 - self.opacity, 0, frame)
+
+    def draw_pil(self, draw_obj):
+        pil_color = (self.color[2], self.color[1], self.color[0], int(self.opacity * 255)) # RGBA
+        draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
