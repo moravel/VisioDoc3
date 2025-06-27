@@ -100,3 +100,33 @@ class TextAnnotation(Annotation):
         font = ImageFont.load_default()
         pil_color = (self.color[2], self.color[1], self.color[0])
         draw_obj.text(self.position, self.text, font=font, fill=pil_color)
+
+class BlurAnnotation(Annotation):
+    def __init__(self, p1, p2, blur_strength=25):
+        super().__init__() # Color and thickness are not relevant for blur
+        self.p1 = p1
+        self.p2 = p2
+        self.blur_strength = blur_strength
+
+    def draw(self, frame):
+        x1, y1 = min(self.p1[0], self.p2[0]), min(self.p1[1], self.p2[1])
+        x2, y2 = max(self.p1[0], self.p2[0]), max(self.p1[1], self.p2[1])
+
+        # Ensure coordinates are within frame boundaries
+        h, w, _ = frame.shape
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(w, x2)
+        y2 = min(h, y2)
+
+        if x2 > x1 and y2 > y1:
+            roi = frame[y1:y2, x1:x2]
+            blurred_roi = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
+            frame[y1:y2, x1:x2] = blurred_roi
+
+    def draw_pil(self, draw_obj):
+        # PIL drawing for blur is more complex as it requires image manipulation
+        # rather than just drawing on a Draw object. This method will be handled
+        # by directly manipulating the PIL Image object in main.py before passing
+        # it to ImageDraw.Draw.
+        pass

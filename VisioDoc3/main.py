@@ -1,13 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from PIL import Image, ImageTk, ImageDraw, ImageFont
+from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageFilter
 import cv2
 import numpy as np
 import datetime
 import os
 import threading
 import time
-from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation # Import new annotation classes
+from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation, BlurAnnotation # Import new annotation classes
 
 
 class VideoStreamThread(threading.Thread):
@@ -200,6 +200,14 @@ class VisioDoc3(tk.Tk):
                     elif self.current_tool == "freedraw" and self.current_freedraw_points:
                         temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=2)
                         temp_annotation.draw(frame)
+                    elif self.current_tool == "blur":
+                        # Draw a translucent rectangle to indicate the blur area
+                        overlay = frame.copy()
+                        x1, y1 = self.start_point
+                        x2, y2 = self.end_point
+                        cv2.rectangle(overlay, (x1, y1), (x2, y2), (255, 255, 0), -1) # Blue color, filled
+                        alpha = 0.3 # Transparency factor
+                        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
 
                 # Convertir l'image OpenCV (avec annotations) en format compatible Tkinter
                 rgb_image_annotated = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -235,8 +243,10 @@ class VisioDoc3(tk.Tk):
         self.current_freedraw_points = []
         self.entered_text = "" # Reset entered text when tool changes
         if tool_name == "text":
-            # For text tool, we need to get input first, then wait for click
             pass # The text input dialog will be triggered on mouse click for text tool
+        elif tool_name == "blur":
+            self.start_point = None
+            self.end_point = None
 
     def save_image(self):
         if self.video_stream_thread and self.video_stream_thread.is_alive():
@@ -246,9 +256,26 @@ class VisioDoc3(tk.Tk):
                 img_pil = Image.fromarray(cv2.cvtColor(frame_to_save, cv2.COLOR_BGR2RGB))
 
                 # Dessiner les annotations sur l'image PIL avant de sauvegarder
-                draw = ImageDraw.Draw(img_pil)
                 for annotation in self.annotations:
-                    annotation.draw_pil(draw)
+                    if isinstance(annotation, BlurAnnotation):
+                        x1, y1 = min(annotation.p1[0], annotation.p2[0]), min(annotation.p1[1], annotation.p2[1])
+                        x2, y2 = max(annotation.p1[0], annotation.p2[0]), max(annotation.p1[1], annotation.p2[1])
+                        
+                        # Ensure coordinates are within image boundaries
+                        img_width, img_height = img_pil.size
+                        x1 = max(0, x1)
+                        y1 = max(0, y1)
+                        x2 = min(img_width, x2)
+                        y2 = min(img_height, y2)
+
+                        if x2 > x1 and y2 > y1:
+                            # Extract ROI, blur it, and paste back
+                            roi = img_pil.crop((x1, y1, x2, y2))
+                            blurred_roi = roi.filter(ImageFilter.GaussianBlur(radius=annotation.blur_strength))
+                            img_pil.paste(blurred_roi, (x1, y1))
+                    else:
+                        draw = ImageDraw.Draw(img_pil)
+                        annotation.draw_pil(draw)
 
                 # Demander à l'utilisateur le chemin de sauvegarde
                 file_path = filedialog.asksaveasfilename(
@@ -359,9 +386,36 @@ class VisioDoc3(tk.Tk):
             # Convert mouse coordinates to original frame coordinates
             self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
             self.end_point = self.start_point # For single click tools or initial point
+        elif self.current_tool == "blur":
+            self.drawing = True
+            original_width = self.video_stream_thread.get_frame().shape[1]
+            original_height = self.video_stream_thread.get_frame().shape[0]
+            
+            label_width = self.image_label.winfo_width()
+            label_height = self.image_label.winfo_height()
+
+            scale_x = original_width / label_width
+            scale_y = original_height / label_height
+
+            img_ratio = original_width / original_height
+            label_ratio = label_width / label_height
+
+            if img_ratio > label_ratio:
+                scaled_img_width = label_width
+                scaled_img_height = int(label_width / img_ratio)
+                offset_y = (label_height - scaled_img_height) / 2
+                offset_x = 0
+            else:
+                scaled_img_height = label_height
+                scaled_img_width = int(label_height * img_ratio)
+                offset_x = (label_width - scaled_img_width) / 2
+                offset_y = 0
+
+            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+            self.end_point = self.start_point # Initialize end_point for drag
 
     def on_mouse_drag(self, event):
-        if self.drawing and self.current_tool in ["line", "rectangle", "freedraw"]:
+        if self.drawing and self.current_tool in ["line", "rectangle", "freedraw", "blur"]:
             # Get coordinates relative to the original frame size
             original_width = self.video_stream_thread.get_frame().shape[1]
             original_height = self.video_stream_thread.get_frame().shape[0]
@@ -440,6 +494,8 @@ class VisioDoc3(tk.Tk):
                 if self.current_freedraw_points:
                     self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=(0, 255, 255), thickness=2))
                 self.current_freedraw_points = [] # Reset for next freedraw
+            elif self.current_tool == "blur":
+                self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
             # Add other tools here
             self.redo_stack.clear() # Clear redo stack on new annotation
 
