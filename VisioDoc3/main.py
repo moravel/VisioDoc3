@@ -276,6 +276,27 @@ class VisioDoc3(tk.Tk):
 
                 # Dessiner les annotations sur l'image PIL avant de sauvegarder
                 # First, apply blur annotations directly to the image
+                
+                # Calculate scale factor for annotations
+                original_width, original_height = img_pil.size
+                display_width = self.image_label.winfo_width()
+                display_height = self.image_label.winfo_height()
+
+                # Determine the actual displayed image dimensions to calculate the correct scale factor
+                img_ratio = original_width / original_height
+                label_ratio = display_width / display_height
+
+                if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
+                    scaled_display_width = display_width
+                    scaled_display_height = int(display_width / img_ratio)
+                else: # Image is taller than label, width is scaled to fit
+                    scaled_display_height = display_height
+                    scaled_display_width = int(display_height * img_ratio)
+                
+                # The scale factor is the ratio of the original image's width to the width it's displayed at.
+                # This assumes annotations are drawn based on the original image's coordinate system.
+                scale_factor = original_width / scaled_display_width if scaled_display_width > 0 else 1.0
+
                 for annotation in self.annotations:
                     if isinstance(annotation, BlurAnnotation):
                         x1, y1 = min(annotation.p1[0], annotation.p2[0]), min(annotation.p1[1], annotation.p2[1])
@@ -300,7 +321,7 @@ class VisioDoc3(tk.Tk):
 
                 for annotation in self.annotations:
                     if not isinstance(annotation, BlurAnnotation):
-                        annotation.draw_pil(draw)
+                        annotation.draw_pil(draw, scale_factor)
 
                 # Composite the overlay onto the main image
                 img_pil = Image.alpha_composite(img_pil, overlay)

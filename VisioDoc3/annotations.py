@@ -182,6 +182,8 @@ class HighlightAnnotation(Annotation):
             cv2.rectangle(overlay, (x1, y1), (x2, y2), self.color, -1)
             cv2.addWeighted(overlay, self.opacity, frame, 1 - self.opacity, 0, frame)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0], int(self.opacity * 255)) # RGBA
-        draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
+        scaled_p1 = (int(self.p1[0] * scale_factor), int(self.p1[1] * scale_factor))
+        scaled_p2 = (int(self.p2[0] * scale_factor), int(self.p2[1] * scale_factor))
+        draw_obj.rectangle([scaled_p1, scaled_p2], fill=pil_color)
