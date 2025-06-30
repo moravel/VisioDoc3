@@ -169,6 +169,10 @@ class VisioDoc3(tk.Tk):
 
                 
 
+                # Draw existing annotations on the display frame
+                for annotation in self.annotations:
+                    annotation.draw(display_frame)
+
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point:
                     if self.current_tool == "line":
