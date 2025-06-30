@@ -164,67 +164,53 @@ class VisioDoc3(tk.Tk):
         if self.video_stream_thread and self.video_stream_thread.is_alive():
             frame = self.video_stream_thread.get_frame()
             if frame is not None:
-                # Convertir l'image OpenCV en format compatible Tkinter
-                rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                img = Image.fromarray(rgb_image)
+                # Create a copy of the frame for display purposes
+                display_frame = frame.copy()
+
                 
-                # Redimensionner l'image pour qu'elle s'adapte au label
-                label_width = self.image_label.winfo_width()
-                label_height = self.image_label.winfo_height()
-
-                if label_width > 0 and label_height > 0:
-                    img_width, img_height = img.size
-                    ratio = min(label_width / img_width, label_height / img_height)
-                    new_width = int(img_width * ratio)
-                    new_height = int(img_height * ratio)
-                    img = img.resize((new_width, new_height), Image.LANCZOS)
-
-                # Draw existing annotations on the frame
-                for annotation in self.annotations:
-                    annotation.draw(frame)
 
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point:
                     if self.current_tool == "line":
                         temp_annotation = LineAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
-                        temp_annotation.draw(frame)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "rectangle":
                         temp_annotation = RectangleAnnotation(self.start_point, self.end_point, color=(0, 255, 0), thickness=2)
-                        temp_annotation.draw(frame)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "circle":
                         center_x = (self.start_point[0] + self.end_point[0]) // 2
                         center_y = (self.start_point[1] + self.end_point[1]) // 2
                         radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
                         temp_annotation = CircleAnnotation((center_x, center_y), radius, color=(255, 0, 0), thickness=2)
-                        temp_annotation.draw(frame)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "freedraw" and self.current_freedraw_points:
                         temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=2)
-                        temp_annotation.draw(frame)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "blur":
                         # Draw a translucent rectangle to indicate the blur area
-                        overlay = frame.copy()
+                        overlay = display_frame.copy()
                         x1, y1 = self.start_point
                         x2, y2 = self.end_point
                         cv2.rectangle(overlay, (x1, y1), (x2, y2), (255, 255, 0), -1) # Blue color, filled
                         alpha = 0.3 # Transparency factor
-                        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+                        display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
                     elif self.current_tool == "arrow":
                         temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
-                        temp_annotation.draw(frame)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "highlight":
                         # Draw a translucent rectangle to indicate the highlight area
-                        overlay = frame.copy()
+                        overlay = display_frame.copy()
                         x1, y1 = self.start_point
                         x2, y2 = self.end_point
                         cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 255), -1) # Yellow color, filled
                         alpha = 0.3 # Transparency factor
-                        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+                        display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
 
-                # Convertir l'image OpenCV (avec annotations) en format compatible Tkinter
-                rgb_image_annotated = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Convert the display frame to Tkinter compatible format
+                rgb_image_annotated = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
                 img_annotated = Image.fromarray(rgb_image_annotated)
                 
-                # Redimensionner l'image pour qu'elle s'adapte au label
+                # Resize the image to fit the label
                 label_width = self.image_label.winfo_width()
                 label_height = self.image_label.winfo_height()
 
