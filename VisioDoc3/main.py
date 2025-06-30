@@ -269,23 +269,20 @@ class VisioDoc3(tk.Tk):
                 
                 # Calculate scale factor for annotations
                 original_width, original_height = img_pil.size
-                display_width = self.image_label.winfo_width()
-                display_height = self.image_label.winfo_height()
+                label_width = self.image_label.winfo_width()
+                label_height = self.image_label.winfo_height()
 
-                # Determine the actual displayed image dimensions to calculate the correct scale factor
-                img_ratio = original_width / original_height
-                label_ratio = display_width / display_height
+                scale_factor = 1.0 # Default to no scaling if label dimensions are zero
+                if label_width > 0 and label_height > 0:
+                    img_ratio = original_width / original_height
+                    label_ratio = label_width / label_height
 
-                if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                    scaled_display_width = display_width
-                    scaled_display_height = int(display_width / img_ratio)
-                else: # Image is taller than label, width is scaled to fit
-                    scaled_display_height = display_height
-                    scaled_display_width = int(display_height * img_ratio)
-                
-                # The scale factor is the ratio of the original image's width to the width it's displayed at.
-                # This assumes annotations are drawn based on the original image's coordinate system.
-                scale_factor = original_width / scaled_display_width if scaled_display_width > 0 else 1.0
+                    if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
+                        # The image is scaled down to fit the label's width
+                        scale_factor = label_width / original_width
+                    else: # Image is taller than label, width is scaled to fit
+                        # The image is scaled down to fit the label's height
+                        scale_factor = label_height / original_height
 
                 for annotation in self.annotations:
                     if isinstance(annotation, BlurAnnotation):
