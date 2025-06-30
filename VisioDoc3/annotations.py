@@ -43,12 +43,14 @@ class RectangleAnnotation(Annotation):
         else:
             cv2.rectangle(frame, self.p1, self.p2, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0]) # Convert BGR to RGB
+        scaled_p1 = (int(self.p1[0] * scale_factor), int(self.p1[1] * scale_factor))
+        scaled_p2 = (int(self.p2[0] * scale_factor), int(self.p2[1] * scale_factor))
         if self.filled:
-            draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
+            draw_obj.rectangle([scaled_p1, scaled_p2], fill=pil_color)
         else:
-            draw_obj.rectangle([self.p1, self.p2], outline=pil_color, width=self.thickness)
+            draw_obj.rectangle([scaled_p1, scaled_p2], outline=pil_color, width=int(self.thickness * scale_factor))
 
 class CircleAnnotation(Annotation):
     def __init__(self, center, radius, color=(0, 0, 255), thickness=2, filled=False):
@@ -181,7 +183,7 @@ class HighlightAnnotation(Annotation):
         self.p2 = p2
         self.opacity = opacity
 
-    def draw(self, frame):
+    def draw(self, frame, scale_factor=1.0):
         overlay = frame.copy()
         x1, y1 = min(self.p1[0], self.p2[0]), min(self.p1[1], self.p2[1])
         x2, y2 = max(self.p1[0], self.p2[0]), max(self.p1[1], self.p2[1])

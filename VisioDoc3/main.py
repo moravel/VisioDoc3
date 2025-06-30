@@ -200,7 +200,7 @@ class VisioDoc3(tk.Tk):
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
                     elif self.current_tool == "arrow":
                         temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
-                        temp_annotation.draw(display_frame)
+                        temp_annotation.draw(display_frame, display_scale_factor)
                     elif self.current_tool == "highlight":
                         # Draw a translucent rectangle to indicate the highlight area
                         overlay = display_frame.copy()
@@ -267,22 +267,24 @@ class VisioDoc3(tk.Tk):
                 # Dessiner les annotations sur l'image PIL avant de sauvegarder
                 # First, apply blur annotations directly to the image
                 
-                # Calculate scale factor for annotations
+                # Calculate scale factor to convert display coordinates/thickness to original image coordinates/thickness
                 original_width, original_height = img_pil.size
                 label_width = self.image_label.winfo_width()
                 label_height = self.image_label.winfo_height()
 
                 scale_factor = 1.0 # Default to no scaling if label dimensions are zero
                 if label_width > 0 and label_height > 0:
-                    img_ratio = original_width / original_height
-                    label_ratio = label_width / label_height
+                    img_aspect_ratio = original_width / original_height
+                    label_aspect_ratio = label_width / label_height
 
-                    if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                        # The image is scaled down to fit the label's width
-                        scale_factor = label_width / original_width
+                    if img_aspect_ratio > label_aspect_ratio: # Image is wider than label, height is scaled to fit
+                        # The image was scaled down to fit the label's width.
+                        # To go from display to original, we need to scale up by original_width / label_width
+                        scale_factor = original_width / label_width
                     else: # Image is taller than label, width is scaled to fit
-                        # The image is scaled down to fit the label's height
-                        scale_factor = label_height / original_height
+                        # The image was scaled down to fit the label's height.
+                        # To go from display to original, we need to scale up by original_height / label_height
+                        scale_factor = original_height / label_height
 
                 for annotation in self.annotations:
                     if isinstance(annotation, BlurAnnotation):
