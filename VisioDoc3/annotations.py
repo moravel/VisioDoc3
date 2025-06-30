@@ -11,7 +11,7 @@ class Annotation:
         # This method will be overridden by specific annotation types for OpenCV
         pass
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         # This method will be overridden by specific annotation types for PIL
         pass
 
@@ -24,9 +24,11 @@ class LineAnnotation(Annotation):
     def draw(self, frame):
         cv2.line(frame, self.start_point, self.end_point, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0]) # Convert BGR to RGB
-        draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
+        scaled_start_point = (int(self.start_point[0] * scale_factor), int(self.start_point[1] * scale_factor))
+        scaled_end_point = (int(self.end_point[0] * scale_factor), int(self.end_point[1] * scale_factor))
+        draw_obj.line([scaled_start_point, scaled_end_point], fill=pil_color, width=int(self.thickness * scale_factor))
 
 class RectangleAnnotation(Annotation):
     def __init__(self, p1, p2, color=(0, 0, 255), thickness=2, filled=False):
@@ -61,14 +63,16 @@ class CircleAnnotation(Annotation):
         else:
             cv2.circle(frame, self.center, self.radius, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0])
-        bbox = [self.center[0] - self.radius, self.center[1] - self.radius, 
-                self.center[0] + self.radius, self.center[1] + self.radius]
+        scaled_center = (int(self.center[0] * scale_factor), int(self.center[1] * scale_factor))
+        scaled_radius = int(self.radius * scale_factor)
+        bbox = [scaled_center[0] - scaled_radius, scaled_center[1] - scaled_radius, 
+                scaled_center[0] + scaled_radius, scaled_center[1] + scaled_radius]
         if self.filled:
             draw_obj.ellipse(bbox, fill=pil_color)
         else:
-            draw_obj.ellipse(bbox, outline=pil_color, width=self.thickness)
+            draw_obj.ellipse(bbox, outline=pil_color, width=int(self.thickness * scale_factor))
 
 class FreeDrawAnnotation(Annotation):
     def __init__(self, points, color=(0, 0, 255), thickness=2):
@@ -79,9 +83,10 @@ class FreeDrawAnnotation(Annotation):
         for i in range(1, len(self.points)):
             cv2.line(frame, self.points[i-1], self.points[i], self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.line(self.points, fill=pil_color, width=self.thickness, joint="curve")
+        scaled_points = [(int(p[0] * scale_factor), int(p[1] * scale_factor)) for p in self.points]
+        draw_obj.line(scaled_points, fill=pil_color, width=int(self.thickness * scale_factor), joint="curve")
 
 class TextAnnotation(Annotation):
     def __init__(self, position, text, font_size=20, color=(0, 0, 255)):
@@ -96,10 +101,16 @@ class TextAnnotation(Annotation):
         cv2.putText(frame, self.text, self.position, cv2.FONT_HERSHEY_SIMPLEX, 
                     self.font_size / 20, self.color, 2, cv2.LINE_AA)
 
-    def draw_pil(self, draw_obj):
-        font = ImageFont.load_default()
+    def draw_pil(self, draw_obj, scale_factor=1.0):
+        try:
+            font = ImageFont.truetype("arial.ttf", int(self.font_size * scale_factor))
+        except IOError:
+            font = ImageFont.load_default()
+            font = font.font_variant(size=int(self.font_size * scale_factor))
+        
         pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.text(self.position, self.text, font=font, fill=pil_color)
+        scaled_position = (int(self.position[0] * scale_factor), int(self.position[1] * scale_factor))
+        draw_obj.text(scaled_position, self.text, font=font, fill=pil_color)
 
 class BlurAnnotation(Annotation):
     def __init__(self, p1, p2, blur_strength=25):
@@ -141,23 +152,27 @@ class ArrowAnnotation(Annotation):
     def draw(self, frame):
         cv2.arrowedLine(frame, self.start_point, self.end_point, self.color, self.thickness, tipLength=self.tip_length)
 
-    def draw_pil(self, draw_obj):
+    def draw_pil(self, draw_obj, scale_factor=1.0):
         pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
+        scaled_start_point = (int(self.start_point[0] * scale_factor), int(self.start_point[1] * scale_factor))
+        scaled_end_point = (int(self.end_point[0] * scale_factor), int(self.end_point[1] * scale_factor))
+        scaled_thickness = int(self.thickness * scale_factor)
+
+        draw_obj.line([scaled_start_point, scaled_end_point], fill=pil_color, width=scaled_thickness)
 
         # Calculate arrowhead points for PIL
         # This is a simplified arrow head, can be improved for better aesthetics
-        angle = np.arctan2(self.end_point[1] - self.start_point[1], self.end_point[0] - self.start_point[0])
-        arrow_size = self.thickness * 5 # Adjust arrow head size based on thickness
+        angle = np.arctan2(scaled_end_point[1] - scaled_start_point[1], scaled_end_point[0] - scaled_start_point[0])
+        arrow_size = scaled_thickness * 5 # Adjust arrow head size based on thickness
 
         # Points for the arrowhead
-        p1 = (self.end_point[0] - arrow_size * np.cos(angle - np.pi / 6),
-              self.end_point[1] - arrow_size * np.sin(angle - np.pi / 6))
-        p2 = (self.end_point[0] - arrow_size * np.cos(angle + np.pi / 6),
-              self.end_point[1] - arrow_size * np.sin(angle + np.pi / 6))
+        p1 = (scaled_end_point[0] - arrow_size * np.cos(angle - np.pi / 6),
+              scaled_end_point[1] - arrow_size * np.sin(angle - np.pi / 6))
+        p2 = (scaled_end_point[0] - arrow_size * np.cos(angle + np.pi / 6),
+              scaled_end_point[1] - arrow_size * np.sin(angle + np.pi / 6))
 
-        draw_obj.line([self.end_point, p1], fill=pil_color, width=self.thickness)
-        draw_obj.line([self.end_point, p2], fill=pil_color, width=self.thickness)
+        draw_obj.line([scaled_end_point, p1], fill=pil_color, width=scaled_thickness)
+        draw_obj.line([scaled_end_point, p2], fill=pil_color, width=scaled_thickness)
 
 class HighlightAnnotation(Annotation):
     def __init__(self, p1, p2, color=(255, 255, 0), opacity=0.3):
