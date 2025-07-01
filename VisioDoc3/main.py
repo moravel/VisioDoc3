@@ -93,7 +93,6 @@ class VisioDoc3(tk.Tk):
         self.left_panel.grid_propagate(False) # Prevent frame from resizing to content
 
         # Buttons for annotation tools
-        ttk.Button(self.left_panel, text="Sélection", command=lambda: self.set_tool("none")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Dessin Main Levée", command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Rectangle", command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Cercle", command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
