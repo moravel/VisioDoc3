@@ -16,7 +16,7 @@ class Annotation:
         pass
 
 class LineAnnotation(Annotation):
-    def __init__(self, start_point, end_point, color=(0, 0, 255), thickness=2):
+    def __init__(self, start_point, end_point, color, thickness=2):
         super().__init__(color, thickness)
         self.start_point = start_point
         self.end_point = end_point

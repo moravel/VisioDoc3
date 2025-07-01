@@ -193,10 +193,10 @@ class VisioDoc3(tk.Tk):
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point:
                     if self.current_tool == "line":
-                        temp_annotation = LineAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
+                        temp_annotation = LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "rectangle":
-                        temp_annotation = RectangleAnnotation(self.start_point, self.end_point, color=(0, 255, 0), thickness=2)
+                        temp_annotation = RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "circle":
                         center_x = (self.start_point[0] + self.end_point[0]) // 2
@@ -541,9 +541,9 @@ class VisioDoc3(tk.Tk):
             self.end_point = (final_x, final_y)
 
             if self.current_tool == "line":
-                self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2))
+                self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
             elif self.current_tool == "rectangle":
-                self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=(0, 255, 0), thickness=2))
+                self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
             elif self.current_tool == "circle":
                 center_x = (self.start_point[0] + self.end_point[0]) // 2
                 center_y = (self.start_point[1] + self.end_point[1]) // 2
