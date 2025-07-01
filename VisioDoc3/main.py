@@ -59,7 +59,7 @@ class VisioDoc3(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("VisioDoc3 - Visionneuse de Documents")
-        self.geometry("1000x700")
+        self.attributes('-fullscreen', True)
 
         # Default resolution for the camera
         self.current_resolution = (640, 480)
