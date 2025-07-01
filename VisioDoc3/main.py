@@ -558,7 +558,7 @@ class VisioDoc3(tk.Tk):
             elif self.current_tool == "arrow":
                 self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
             elif self.current_tool == "highlight":
-                self.annotations.append(HighlightAnnotation(self.start_point, self.end_point))
+                self.annotations.append(HighlightAnnotation(self.start_point, self.end_point, color=self.current_annotation_color))
             # Add other tools here
             self.redo_stack.clear() # Clear redo stack on new annotation
 
