@@ -261,7 +261,6 @@ class VisioDoc3(tk.Tk):
             rgb_color = color_code[0] # RGB tuple
             # Convert RGB to BGR for OpenCV
             self.current_annotation_color = (rgb_color[2], rgb_color[1], rgb_color[0])
-            print(f"Selected RGB: {rgb_color}, Converted BGR: {self.current_annotation_color}")
 
     def set_tool(self, tool_name):
         self.current_tool = tool_name
