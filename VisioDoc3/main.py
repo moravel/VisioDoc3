@@ -59,8 +59,9 @@ class VisioDoc3(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("VisioDoc3 - Visionneuse de Documents")
-        self.geometry("1000x700")
-        self.state('zoomed')
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        self.geometry(f"{screen_width}x{screen_height}")
 
         # Default resolution for the camera
         self.current_resolution = (640, 480)
