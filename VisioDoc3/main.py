@@ -550,7 +550,7 @@ class VisioDoc3(tk.Tk):
                 self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=(255, 0, 0), thickness=2))
             elif self.current_tool == "freedraw":
                 if self.current_freedraw_points:
-                    self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=(0, 255, 255), thickness=2))
+                    self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=2))
                 self.current_freedraw_points = [] # Reset for next freedraw
             elif self.current_tool == "blur":
                 self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
