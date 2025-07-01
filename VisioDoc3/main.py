@@ -11,9 +11,11 @@ from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, F
 
 
 class VideoStreamThread(threading.Thread):
-    def __init__(self, camera_index=0):
+    def __init__(self, camera_index=0, width=1280, height=720):
         super().__init__()
         self.camera_index = camera_index
+        self.width = width
+        self.height = height
         self.cap = None
         self._run_flag = True
         self.frame = None
@@ -21,6 +23,8 @@ class VideoStreamThread(threading.Thread):
 
     def run(self):
         self.cap = cv2.VideoCapture(self.camera_index)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         if not self.cap.isOpened():
             print(f"Error: Could not open video stream for camera {self.camera_index}")
             self._run_flag = False
@@ -56,6 +60,9 @@ class VisioDoc3(tk.Tk):
         super().__init__()
         self.title("VisioDoc3 - Visionneuse de Documents")
         self.geometry("1000x700")
+
+        # Default resolution for the camera
+        self.current_resolution = (640, 480)
 
         self.video_stream_thread = None
         self.current_photo = None
@@ -119,7 +126,7 @@ class VisioDoc3(tk.Tk):
             self.camera_var.set(self.camera_options[0][0]) # Set initial value
             self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], command=self.select_camera)
             self.camera_menu.pack(side=tk.LEFT)
-            self.start_video_stream(self.camera_options[0][1])
+            self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
         else:
             ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée").pack(side=tk.LEFT)
 
@@ -139,19 +146,25 @@ class VisioDoc3(tk.Tk):
     def populate_cameras(self):
         # Try to find available cameras
         for i in range(10): # Check up to 10 cameras
+            print(f"Attempting to open camera {i}...")
             cap = cv2.VideoCapture(i)
             if cap.isOpened():
+                print(f"Successfully opened camera {i}.")
                 self.camera_options.append((f"Webcam {i}", i))
                 cap.release()
             else:
-                break
+                print(f"Could not open camera {i}.")
+                # If a camera index fails, it doesn't necessarily mean there are no more cameras.
+                # Sometimes, higher indices might work even if lower ones don't.
+                # So, we continue checking all 10 indices.
+                pass
 
-    def start_video_stream(self, camera_index):
+    def start_video_stream(self, camera_index, width, height):
         if self.video_stream_thread and self.video_stream_thread.is_alive():
             self.video_stream_thread.stop()
             self.video_stream_thread.join()
         
-        self.video_stream_thread = VideoStreamThread(camera_index)
+        self.video_stream_thread = VideoStreamThread(camera_index, width, height)
         self.video_stream_thread.start()
 
     def select_camera(self, camera_name):
@@ -200,7 +213,7 @@ class VisioDoc3(tk.Tk):
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
                     elif self.current_tool == "arrow":
                         temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
-                        temp_annotation.draw(display_frame, display_scale_factor)
+                        temp_annotation.draw(display_frame)
                     elif self.current_tool == "highlight":
                         # Draw a translucent rectangle to indicate the highlight area
                         overlay = display_frame.copy()
@@ -227,6 +240,7 @@ class VisioDoc3(tk.Tk):
 
                 self.current_photo = ImageTk.PhotoImage(image=img_annotated)
                 self.image_label.config(image=self.current_photo)
+                self.pil_image_to_save = img_annotated
         
         self.after(10, self.update_video_frame)
 
@@ -256,106 +270,47 @@ class VisioDoc3(tk.Tk):
             self.end_point = None
 
     def save_image(self):
-        if self.video_stream_thread and self.video_stream_thread.is_alive():
-            frame_to_save = self.video_stream_thread.get_frame()
-            if frame_to_save is not None:
-                # Convertir l'image OpenCV en format PIL
-                img_pil = Image.fromarray(cv2.cvtColor(frame_to_save, cv2.COLOR_BGR2RGB))
-                # Convert to RGBA to support transparency for highlight
-                img_pil = img_pil.convert("RGBA")
+        if self.pil_image_to_save:
+            # Récupère l'image actuellement affichée (qui contient déjà les annotations)
+            img_to_save = self.pil_image_to_save
 
-                # Dessiner les annotations sur l'image PIL avant de sauvegarder
-                # First, apply blur annotations directly to the image
+            # Demande à l'utilisateur le chemin de sauvegarde
+            file_path = filedialog.asksaveasfilename(
+                filetypes=[("Fichiers PNG", "*.png"), ("Fichiers PDF", "*.pdf")],
+                title="Sauvegarder l'image annotée"
+            )
+
+            if file_path:
+                # Détermine l'extension souhaitée en fonction du type de fichier sélectionné
+                selected_ext = ".png"  # Par défaut, PNG si aucune extension spécifique n'est trouvée
+                for desc, pattern in [("Fichiers PNG", "*.png"), ("Fichiers PDF", "*.pdf")]:
+                    if file_path.lower().endswith(pattern[1:]):
+                        selected_ext = pattern[1:]
+                        break
                 
-                # Calculate scale factor to convert display coordinates/thickness to original image coordinates/thickness
-                original_width, original_height = img_pil.size
-                label_width = self.image_label.winfo_width()
-                label_height = self.image_label.winfo_height()
+                # Si l'utilisateur n'a pas tapé d'extension, ou en a tapé une mauvaise, ajoute la bonne
+                name, ext = os.path.splitext(file_path)
+                if not ext or ext.lower() != selected_ext:
+                    file_path = name + selected_ext
 
-                scale_factor = 1.0 # Default to no scaling if label dimensions are zero
-                if label_width > 0 and label_height > 0:
-                    img_aspect_ratio = original_width / original_height
-                    label_aspect_ratio = label_width / label_height
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                directory, filename = os.path.split(file_path)
+                name, ext = os.path.splitext(filename)
+                
+                final_filename = os.path.join(directory, f"{timestamp}_{name}{ext}")
 
-                    if img_aspect_ratio > label_aspect_ratio: # Image is wider than label, height is scaled to fit
-                        # The image was scaled down to fit the label's width.
-                        # To go from display to original, we need to scale up by original_width / label_width
-                        scale_factor = original_width / label_width
-                    else: # Image is taller than label, width is scaled to fit
-                        # The image was scaled down to fit the label's height.
-                        # To go from display to original, we need to scale up by original_height / label_height
-                        scale_factor = original_height / label_height
-
-                for annotation in self.annotations:
-                    if isinstance(annotation, BlurAnnotation):
-                        x1, y1 = min(annotation.p1[0], annotation.p2[0]), min(annotation.p1[1], annotation.p2[1])
-                        x2, y2 = max(annotation.p1[0], annotation.p2[0]), max(annotation.p1[1], annotation.p2[1])
-                        
-                        # Ensure coordinates are within image boundaries
-                        img_width, img_height = img_pil.size
-                        x1 = max(0, x1)
-                        y1 = max(0, y1)
-                        x2 = min(img_width, x2)
-                        y2 = min(img_height, y2)
-
-                        if x2 > x1 and y2 > y1:
-                            # Extract ROI, blur it, and paste back
-                            roi = img_pil.crop((x1, y1, x2, y2))
-                            blurred_roi = roi.filter(ImageFilter.GaussianBlur(radius=annotation.blur_strength))
-                            img_pil.paste(blurred_roi, (x1, y1))
-
-                # Create a transparent overlay for drawing other annotations
-                overlay = Image.new('RGBA', img_pil.size, (0, 0, 0, 0))
-                draw = ImageDraw.Draw(overlay)
-
-                for annotation in self.annotations:
-                    if not isinstance(annotation, BlurAnnotation):
-                        annotation.draw_pil(draw, scale_factor)
-
-                # Composite the overlay onto the main image
-                img_pil = Image.alpha_composite(img_pil, overlay)
-
-                # Demander à l'utilisateur le chemin de sauvegarde
-                file_path = filedialog.asksaveasfilename(
-                    filetypes=[("PNG files", "*.png"), ("PDF files", "*.pdf")],
-                    title="Sauvegarder l'image annotée"
-                )
-
-                if file_path:
-                    # Determine the intended extension based on the selected filetype
-                    # filedialog.asksaveasfilename does not directly return the selected filter,
-                    # so we infer it from the file_path and filetypes.
-                    selected_ext = ".png" # Default to PNG if no specific extension is found
-                    for desc, pattern in [("PNG files", "*.png"), ("PDF files", "*.pdf")]:
-                        if file_path.lower().endswith(pattern[1:]): # Check if path ends with .png or .pdf
-                            selected_ext = pattern[1:]
-                            break
-                    
-                    # If the user didn't type an extension, or typed a wrong one, append the correct one
-                    name, ext = os.path.splitext(file_path)
-                    if not ext or ext.lower() != selected_ext:
-                        file_path = name + selected_ext
-
-                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                    directory, filename = os.path.split(file_path)
-                    name, ext = os.path.splitext(filename)
-                    
-                    final_filename = os.path.join(directory, f"{timestamp}_{name}{ext}")
-
-                    try:
-                        if ext.lower() == ".pdf":
-                            img_pil.save(final_filename, "PDF", resolution=100.0)
-                        elif ext.lower() == ".png":
-                            img_pil.save(final_filename)
-                        else: # Fallback if something unexpected happens
-                            img_pil.save(final_filename, "PNG") # Save as PNG by default
-                        messagebox.showinfo("Sauvegarde", f"Image sauvegardée avec succès :\n{final_filename}")
-                    except Exception as e:
-                        messagebox.showerror("Erreur de Sauvegarde", f"Impossible de sauvegarder l'image :\n{e}")
-            else:
-                messagebox.showwarning("Avertissement", "Aucune image à sauvegarder.")
+                try:
+                    if ext.lower() == ".pdf":
+                        img_to_save.save(final_filename, "PDF", resolution=100.0)
+                    elif ext.lower() == ".png":
+                        img_to_save.save(final_filename)
+                    else:  # Repli si quelque chose d'inattendu se produit
+                        img_to_save.save(final_filename, "PNG")  # Sauvegarde en PNG par défaut
+                    messagebox.showinfo("Sauvegarde", f"Image sauvegardée avec succès :\n{final_filename}")
+                except Exception as e:
+                    messagebox.showerror("Erreur de Sauvegarde", f"Impossible de sauvegarder l'image :\n{e}")
         else:
-            messagebox.showwarning("Avertissement", "Le flux vidéo n'est pas actif.")
+            messagebox.showwarning("Avertissement", "Aucune image à sauvegarder.")
 
     def on_mouse_down(self, event):
         if self.current_tool == "text":
