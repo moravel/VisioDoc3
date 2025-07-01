@@ -29,7 +29,7 @@ class LineAnnotation(Annotation):
         draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
 
 class RectangleAnnotation(Annotation):
-    def __init__(self, p1, p2, color=(0, 0, 255), thickness=2, filled=False):
+    def __init__(self, p1, p2, color, thickness=2, filled=False):
         super().__init__(color, thickness)
         self.p1 = p1
         self.p2 = p2
