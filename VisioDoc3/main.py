@@ -77,6 +77,8 @@ class VisioDoc3(tk.Tk):
         self.drawing = False
         self.current_freedraw_points = [] # For freedraw tool
         self.current_annotation_color = (0, 0, 255) # Default to blue (BGR for OpenCV)
+        self.current_annotation_thickness = 2 # Default thickness
+        self.current_font_size = 20 # Default font size
 
         # Main layout
         self.main_frame = ttk.Frame(self)
@@ -102,6 +104,7 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.left_panel, text="Flèche", command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Surlignage", command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Choisir Couleur", command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Taille", command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
 
         # Video Display Area
         self.video_frame = ttk.Frame(self.main_frame)
@@ -193,20 +196,20 @@ class VisioDoc3(tk.Tk):
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point:
                     if self.current_tool == "line":
-                        temp_annotation = LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2)
+                        temp_annotation = LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "rectangle":
-                        temp_annotation = RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2)
+                        temp_annotation = RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "circle":
                         center_x = (self.start_point[0] + self.end_point[0]) // 2
                         center_y = (self.start_point[1] + self.end_point[1]) // 2
                         radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                        temp_annotation = CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=2)
+                        temp_annotation = CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
                         print(f"Creating temporary CircleAnnotation with color: {self.current_annotation_color}")
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "freedraw" and self.current_freedraw_points:
-                        temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=2)
+                        temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "blur":
                         # Draw a translucent rectangle to indicate the blur area
@@ -217,7 +220,7 @@ class VisioDoc3(tk.Tk):
                         alpha = 0.3 # Transparency factor
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
                     elif self.current_tool == "arrow":
-                        temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2)
+                        temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "highlight":
                         # Draw a translucent rectangle to indicate the highlight area
@@ -261,6 +264,29 @@ class VisioDoc3(tk.Tk):
             rgb_color = color_code[0] # RGB tuple
             # Convert RGB to BGR for OpenCV
             self.current_annotation_color = (rgb_color[2], rgb_color[1], rgb_color[0])
+
+    def choose_annotation_size(self):
+        size_dialog = tk.Toplevel(self)
+        size_dialog.title("Choisir la taille")
+        size_dialog.transient(self)
+        size_dialog.grab_set()
+
+        ttk.Label(size_dialog, text="Épaisseur du trait:").pack(pady=5)
+        thickness_slider = ttk.Scale(size_dialog, from_=1, to_=50, orient=tk.HORIZONTAL)
+        thickness_slider.set(self.current_annotation_thickness)
+        thickness_slider.pack(fill=tk.X, padx=10, pady=5)
+
+        ttk.Label(size_dialog, text="Taille de la police:").pack(pady=5)
+        font_size_slider = ttk.Scale(size_dialog, from_=8, to_=72, orient=tk.HORIZONTAL)
+        font_size_slider.set(self.current_font_size)
+        font_size_slider.pack(fill=tk.X, padx=10, pady=5)
+
+        def on_ok():
+            self.current_annotation_thickness = int(thickness_slider.get())
+            self.current_font_size = int(font_size_slider.get())
+            size_dialog.destroy()
+
+        ttk.Button(size_dialog, text="OK", command=on_ok).pack(pady=10)
 
     def set_tool(self, tool_name):
         self.current_tool = tool_name
@@ -356,7 +382,7 @@ class VisioDoc3(tk.Tk):
 
                 # Convert mouse coordinates to original frame coordinates
                 text_position = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-                self.annotations.append(TextAnnotation(text_position, entered_text, color=self.current_annotation_color, font_size=20))
+                self.annotations.append(TextAnnotation(text_position, entered_text, color=self.current_annotation_color, font_size=self.current_font_size))
                 self.undo_stack.append(self.annotations[:]) # Save state for undo
                 self.redo_stack.clear() # Clear redo stack on new annotation
                 self.set_tool("none") # Go back to selection tool
@@ -541,23 +567,23 @@ class VisioDoc3(tk.Tk):
             self.end_point = (final_x, final_y)
 
             if self.current_tool == "line":
-                self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
+                self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
             elif self.current_tool == "rectangle":
-                self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
+                self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
             elif self.current_tool == "circle":
                 center_x = (self.start_point[0] + self.end_point[0]) // 2
                 center_y = (self.start_point[1] + self.end_point[1]) // 2
                 radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=2))
+                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
                 print(f"Adding CircleAnnotation with color: {self.current_annotation_color}")
             elif self.current_tool == "freedraw":
                 if self.current_freedraw_points:
-                    self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=2))
+                    self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=self.current_annotation_thickness))
                 self.current_freedraw_points = [] # Reset for next freedraw
             elif self.current_tool == "blur":
                 self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
             elif self.current_tool == "arrow":
-                self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
+                self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
             elif self.current_tool == "highlight":
                 self.annotations.append(HighlightAnnotation(self.start_point, self.end_point, color=self.current_annotation_color))
             # Add other tools here
