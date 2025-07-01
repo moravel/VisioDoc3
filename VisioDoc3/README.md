@@ -1,59 +1,80 @@
-# VisioDoc3
+# VisioDoc3 - Visionneuse de Documents
 
-VisioDoc3 is a Python application for webcam-based document viewing and annotation. It allows users to draw various shapes (lines, rectangles, circles, freehand), add text, and save the annotated images as PNGs or PDFs.
+VisioDoc3 est une application de visionneuse de documents en temps réel avec des capacités d'annotation, développée en Python en utilisant Tkinter pour l'interface utilisateur et OpenCV pour le traitement vidéo.
 
-## Features
+## Fonctionnalités
 
-*   Real-time webcam feed display.
-*   Annotation tools:
-    *   Line
+*   **Flux Vidéo en Temps Réel:** Affiche le flux vidéo d'une webcam connectée.
+*   **Sélection de Caméra:** Permet de choisir parmi les caméras disponibles.
+*   **Outils d'Annotation:**
+    *   Ligne
     *   Rectangle
-    *   Circle
-    *   Freehand drawing
-    *   Text annotation
-*   Undo/Redo functionality for annotations.
-*   Save annotated images as PNG or PDF.
+    *   Cercle
+    *   Dessin à main levée
+    *   Ajout de texte
+    *   Zone de flou
+    *   Flèche
+    *   Surlignage
+*   **Sauvegarde d'Image:** Permet de sauvegarder le cadre actuel avec les annotations sous forme d'image (PNG) ou de PDF.
+*   **Annuler/Rétablir:** Fonctionnalités pour annuler et rétablir les dernières annotations.
+*   **Effacer Tout:** Supprime toutes les annotations de l'image.
 
-## Setup and Installation
+## Prérequis
 
-1.  **Clone the repository:**
+Avant de commencer, assurez-vous d'avoir les éléments suivants installés sur votre système :
+
+*   Python 3.x
+*   pip (gestionnaire de paquets Python)
+
+## Installation
+
+Suivez ces étapes pour configurer et exécuter le projet :
+
+1.  **Cloner le dépôt (si ce n'est pas déjà fait) :**
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/moravel/VisioDoc3.git
     cd VisioDoc3
     ```
-    (Replace `<repository_url>` with the actual URL of your repository.)
 
-2.  **Create and activate a virtual environment:**
+2.  **Créer et activer un environnement virtuel :**
+    Il est fortement recommandé d'utiliser un environnement virtuel pour gérer les dépendances du projet.
+
     ```bash
     python3 -m venv venv
-    source venv/bin/activate
+    source venv/bin/activate  # Sous Linux/macOS
+    # Pour Windows, utilisez `venv\Scripts\activate`
     ```
 
-3.  **Install dependencies:**
+3.  **Installer les dépendances :**
+    Les dépendances principales sont `opencv-python`, `Pillow` et `tkinter` (généralement inclus avec Python).
+
     ```bash
-    pip install opencv-python-headless Pillow
+    pip install opencv-python Pillow
     ```
-    *(Note: `opencv-python-headless` is recommended for server environments or if you don't need the full OpenCV GUI features. If you encounter issues, you might try `pip install opencv-python` instead.)*
+    *Note: Tkinter est généralement inclus avec l'installation standard de Python. Si vous rencontrez des problèmes, vous devrez peut-être l'installer séparément en fonction de votre système d'exploitation (par exemple, `sudo apt-get install python3-tk` sur Debian/Ubuntu).*
 
-## Usage
+## Utilisation
 
-1.  **Run the application:**
-    ```bash
-    python main.py
-    ```
+Pour démarrer l'application, assurez-vous que votre environnement virtuel est activé, puis exécutez le script `main.py` :
 
-2.  **Using Annotation Tools:**
-    *   Select a tool from the left panel (e.g., "Rectangle", "Ajouter Texte").
-    *   Click and drag (for shapes) or click (for text) on the video feed to apply annotations.
-    *   Use "Annuler" (Undo) and "Rétablir" (Redo) buttons to manage annotations.
+```bash
+source venv/bin/activate # Si ce n'est pas déjà fait
+python3 main.py
+```
 
-3.  **Saving Images:**
-    *   Click the "Sauvegarder" (Save) button.
-    *   Choose the desired file type (PNG or PDF) and location.
+L'application devrait se lancer et afficher le flux vidéo de votre webcam par défaut. Vous pouvez sélectionner différentes caméras si plusieurs sont disponibles et utiliser les outils d'annotation sur le panneau de gauche.
 
-## Troubleshooting
+## Dépannage
 
-*   **Camera not found:** Ensure your webcam is connected and not in use by other applications. You might need to adjust the `camera_index` in `main.py` if you have multiple cameras.
-*   **Text input dialog not working:** This issue has been addressed in recent updates. Ensure your local repository is up to date.
+*   **L'application ne démarre pas / Pas de flux vidéo :**
+    *   Assurez-vous que votre webcam est correctement connectée et que les pilotes sont à jour.
+    *   Vérifiez les permissions d'accès à la caméra pour l'application.
+    *   Les messages d'erreur dans la console peuvent indiquer des problèmes avec OpenCV ou l'accès à la caméra.
+    *   Si vous avez plusieurs caméras, l'application essaie d'ouvrir la caméra avec l'index 0 par défaut. Vous pouvez essayer de modifier l'index de la caméra dans le code pour tester d'autres caméras.
+
+*   **Problèmes de sauvegarde d'image :**
+    *   Assurez-vous que vous avez sélectionné un format de fichier valide (.png ou .pdf).
+    *   Vérifiez les permissions d'écriture dans le répertoire de destination.
+    *   Si la sauvegarde PDF échoue, assurez-vous que Pillow est correctement installé et qu'il peut gérer la conversion en PDF.
 
 ---
