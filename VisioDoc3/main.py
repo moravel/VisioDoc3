@@ -141,6 +141,7 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.right_panel, text="Effacer Tout", command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Annuler (Undo)", command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Rétablir (Redo)", command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Paramètres", command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
@@ -601,6 +602,51 @@ class VisioDoc3(tk.Tk):
         if self.redo_stack:
             last_redone = self.redo_stack.pop()
             self.annotations.append(last_redone)
+
+    def open_settings_dialog(self):
+        settings_dialog = tk.Toplevel(self)
+        settings_dialog.title("Paramètres de la Caméra")
+        settings_dialog.transient(self)
+        settings_dialog.grab_set()
+
+        # Brightness control
+        ttk.Label(settings_dialog, text="Luminosité:").pack(pady=5)
+        self.brightness_slider = ttk.Scale(settings_dialog, from_=0, to_=255, orient=tk.HORIZONTAL, command=self.set_brightness)
+        self.brightness_slider.set(self.video_stream_thread.cap.get(cv2.CAP_PROP_BRIGHTNESS) if self.video_stream_thread and self.video_stream_thread.cap else 128)
+        self.brightness_slider.pack(fill=tk.X, padx=10, pady=5)
+
+        # Contrast control
+        ttk.Label(settings_dialog, text="Contraste:").pack(pady=5)
+        self.contrast_slider = ttk.Scale(settings_dialog, from_=0, to_=255, orient=tk.HORIZONTAL, command=self.set_contrast)
+        self.contrast_slider.set(self.video_stream_thread.cap.get(cv2.CAP_PROP_CONTRAST) if self.video_stream_thread and self.video_stream_thread.cap else 128)
+        self.contrast_slider.pack(fill=tk.X, padx=10, pady=5)
+
+        # Resolution control
+        ttk.Label(settings_dialog, text="Résolution:").pack(pady=5)
+        self.resolution_var = tk.StringVar(settings_dialog)
+        self.resolutions = ["640x480", "800x600", "1280x720", "1920x1080"] # Common resolutions
+        self.resolution_var.set(f"{self.current_resolution[0]}x{self.current_resolution[1]}")
+        resolution_menu = ttk.OptionMenu(settings_dialog, self.resolution_var, self.resolution_var.get(), *self.resolutions, command=self.set_resolution)
+        resolution_menu.pack(pady=5)
+
+        ttk.Button(settings_dialog, text="Fermer", command=settings_dialog.destroy).pack(pady=10)
+
+    def set_brightness(self, value):
+        if self.video_stream_thread and self.video_stream_thread.cap:
+            self.video_stream_thread.cap.set(cv2.CAP_PROP_BRIGHTNESS, float(value))
+
+    def set_contrast(self, value):
+        if self.video_stream_thread and self.video_stream_thread.cap:
+            self.video_stream_thread.cap.set(cv2.CAP_PROP_CONTRAST, float(value))
+
+    def set_resolution(self, resolution_str):
+        width, height = map(int, resolution_str.split('x'))
+        self.current_resolution = (width, height)
+        if self.video_stream_thread:
+            self.video_stream_thread.stop()
+            self.video_stream_thread.join()
+            # Restart the video stream with the new resolution
+            self.start_video_stream(self.video_stream_thread.camera_index, width, height)
 
     def on_closing(self):
         if self.video_stream_thread:
