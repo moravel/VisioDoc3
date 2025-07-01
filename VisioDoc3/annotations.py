@@ -3,7 +3,7 @@ import numpy as np
 from PIL import ImageDraw, ImageFont # Import for PIL drawing
 
 class Annotation:
-    def __init__(self, color=(0, 0, 255), thickness=2):
+    def __init__(self, color, thickness=2):
         self.color = color  # BGR format for OpenCV
         self.thickness = thickness
 
