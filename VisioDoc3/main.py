@@ -64,7 +64,7 @@ class VisioDoc3(tk.Tk):
         self.geometry(f"{screen_width}x{screen_height}")
 
         # Default resolution for the camera
-        self.current_resolution = (640, 480)
+        self.current_resolution = (1280, 720)
 
         self.video_stream_thread = None
         self.current_photo = None
