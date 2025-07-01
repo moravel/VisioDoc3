@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, colorchooser
 from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageFilter
 import cv2
 import numpy as np
@@ -76,6 +76,7 @@ class VisioDoc3(tk.Tk):
         self.end_point = None
         self.drawing = False
         self.current_freedraw_points = [] # For freedraw tool
+        self.current_annotation_color = (0, 0, 255) # Default to blue (BGR for OpenCV)
 
         # Main layout
         self.main_frame = ttk.Frame(self)
@@ -101,6 +102,7 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.left_panel, text="Zone de Flou", command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Flèche", command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Surlignage", command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Couleur", command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
 
         # Video Display Area
         self.video_frame = ttk.Frame(self.main_frame)
@@ -253,6 +255,13 @@ class VisioDoc3(tk.Tk):
             self.video_stream_thread.join()
         self.destroy()
 
+    def choose_annotation_color(self):
+        color_code = colorchooser.askcolor(title="Choisir la couleur de l'annotation")
+        if color_code[1]: # If a color is selected
+            rgb_color = color_code[0] # RGB tuple
+            # Convert RGB to BGR for OpenCV
+            self.current_annotation_color = (rgb_color[2], rgb_color[1], rgb_color[0])
+
     def set_tool(self, tool_name):
         self.current_tool = tool_name
         self.start_point = None
@@ -347,7 +356,7 @@ class VisioDoc3(tk.Tk):
 
                 # Convert mouse coordinates to original frame coordinates
                 text_position = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-                self.annotations.append(TextAnnotation(text_position, entered_text, color=(0, 0, 0), font_size=20))
+                self.annotations.append(TextAnnotation(text_position, entered_text, color=self.current_annotation_color, font_size=20))
                 self.undo_stack.append(self.annotations[:]) # Save state for undo
                 self.redo_stack.clear() # Clear redo stack on new annotation
                 self.set_tool("none") # Go back to selection tool
@@ -547,7 +556,7 @@ class VisioDoc3(tk.Tk):
             elif self.current_tool == "blur":
                 self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
             elif self.current_tool == "arrow":
-                self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=2))
+                self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=2))
             elif self.current_tool == "highlight":
                 self.annotations.append(HighlightAnnotation(self.start_point, self.end_point))
             # Add other tools here
