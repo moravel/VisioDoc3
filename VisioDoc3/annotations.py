@@ -71,7 +71,7 @@ class CircleAnnotation(Annotation):
             draw_obj.ellipse(bbox, outline=pil_color, width=self.thickness)
 
 class FreeDrawAnnotation(Annotation):
-    def __init__(self, points, color=(0, 0, 255), thickness=2):
+    def __init__(self, points, color, thickness=2):
         super().__init__(color, thickness)
         self.points = points # List of (x, y) tuples
 
