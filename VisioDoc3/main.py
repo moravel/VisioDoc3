@@ -202,7 +202,8 @@ class VisioDoc3(tk.Tk):
                         center_x = (self.start_point[0] + self.end_point[0]) // 2
                         center_y = (self.start_point[1] + self.end_point[1]) // 2
                         radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                        temp_annotation = CircleAnnotation((center_x, center_y), radius, color=(255, 0, 0), thickness=2)
+                        temp_annotation = CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=2)
+                        print(f"Creating temporary CircleAnnotation with color: {self.current_annotation_color}")
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "freedraw" and self.current_freedraw_points:
                         temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=2)
@@ -260,6 +261,7 @@ class VisioDoc3(tk.Tk):
             rgb_color = color_code[0] # RGB tuple
             # Convert RGB to BGR for OpenCV
             self.current_annotation_color = (rgb_color[2], rgb_color[1], rgb_color[0])
+            print(f"Selected RGB: {rgb_color}, Converted BGR: {self.current_annotation_color}")
 
     def set_tool(self, tool_name):
         self.current_tool = tool_name
@@ -547,7 +549,8 @@ class VisioDoc3(tk.Tk):
                 center_x = (self.start_point[0] + self.end_point[0]) // 2
                 center_y = (self.start_point[1] + self.end_point[1]) // 2
                 radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=(255, 0, 0), thickness=2))
+                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=2))
+                print(f"Adding CircleAnnotation with color: {self.current_annotation_color}")
             elif self.current_tool == "freedraw":
                 if self.current_freedraw_points:
                     self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=2))
