@@ -224,7 +224,7 @@ class VisioDoc3(tk.Tk):
                         overlay = display_frame.copy()
                         x1, y1 = self.start_point
                         x2, y2 = self.end_point
-                        cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 255), -1) # Yellow color, filled
+                        cv2.rectangle(overlay, (x1, y1), (x2, y2), self.current_annotation_color, -1) # Yellow color, filled
                         alpha = 0.3 # Transparency factor
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
 
