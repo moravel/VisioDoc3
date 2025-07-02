@@ -177,7 +177,7 @@ class VisioDoc3(tk.Tk):
             "undo": "undo.png",
             "redo": "redo.png",
             "settings": "settings.png",
-            "logo": "logo.png",
+            "logo": "logoVisioDoc3.png",
         }
         for name, filename in icon_names.items():
             try:
@@ -188,6 +188,19 @@ class VisioDoc3(tk.Tk):
             except FileNotFoundError:
                 print(f"Warning: Icon file not found: {filename}")
                 self.icons[name] = None # Set to None if not found
+        # Special handling for the logo to make it larger
+        try:
+            path = os.path.join(ICON_DIR, "logoVisioDoc3.png")
+            img = Image.open(path)
+            # Resize logo to fit the panel width (150px), with some padding
+            base_width = 140
+            w_percent = (base_width / float(img.size[0]))
+            h_size = int((float(img.size[1]) * float(w_percent)))
+            img = img.resize((base_width, h_size), Image.LANCZOS)
+            self.icons["logo"] = ImageTk.PhotoImage(img)
+        except FileNotFoundError:
+            print(f"Warning: Icon file not found: logoVisioDoc3.png")
+            self.icons["logo"] = None
 
     def populate_cameras(self):
         # Try to find available cameras
