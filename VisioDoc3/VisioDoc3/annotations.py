@@ -108,7 +108,7 @@ class TextAnnotation(Annotation):
 
 class BlurAnnotation(Annotation):
     def __init__(self, p1, p2, blur_strength=25):
-        super().__init__() # Color and thickness are not relevant for blur
+        super().__init__((0, 0, 0)) # Color and thickness are not relevant for blur, but base class requires it
         self.p1 = p1
         self.p2 = p2
         self.blur_strength = blur_strength

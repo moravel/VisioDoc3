@@ -9,6 +9,8 @@ import threading
 import time
 from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation, BlurAnnotation, ArrowAnnotation, HighlightAnnotation # Import new annotation classes
 
+ICON_DIR = os.path.join(os.path.dirname(__file__), "icons")
+
 
 class VideoStreamThread(threading.Thread):
     def __init__(self, camera_index=0, width=1280, height=720):
@@ -56,6 +58,7 @@ class VideoStreamThread(threading.Thread):
         self.start() # Start a new thread for the new camera
 
 class VisioDoc3(tk.Tk):
+    ICON_DIR = os.path.join(os.path.dirname(__file__), "icons")
     def __init__(self):
         super().__init__()
         self.title("VisioDoc3 - Visionneuse de Documents")
@@ -95,16 +98,19 @@ class VisioDoc3(tk.Tk):
         self.left_panel.grid_propagate(False) # Prevent frame from resizing to content
 
         # Buttons for annotation tools
-        ttk.Button(self.left_panel, text="Dessin Main Levée", command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Rectangle", command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Cercle", command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Ligne", command=lambda: self.set_tool("line")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Ajouter Texte", command=lambda: self.set_tool("text")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Zone de Flou", command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Flèche", command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Surlignage", command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Choisir Couleur", command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Choisir Taille", command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
+        self.icons = {}
+        self._load_icons()
+
+        ttk.Button(self.left_panel, text="Dessin Main Levée", image=self.icons.get("freedraw"), compound=tk.LEFT, command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Rectangle", image=self.icons.get("rectangle"), compound=tk.LEFT, command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Cercle", image=self.icons.get("circle"), compound=tk.LEFT, command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Ligne", image=self.icons.get("line"), compound=tk.LEFT, command=lambda: self.set_tool("line")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Ajouter Texte", image=self.icons.get("text"), compound=tk.LEFT, command=lambda: self.set_tool("text")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Zone de Flou", image=self.icons.get("blur"), compound=tk.LEFT, command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Flèche", image=self.icons.get("arrow"), compound=tk.LEFT, command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Surlignage", image=self.icons.get("highlight"), compound=tk.LEFT, command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
 
         # Video Display Area
         self.video_frame = ttk.Frame(self.main_frame)
@@ -149,6 +155,34 @@ class VisioDoc3(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
+
+    def _load_icons(self):
+        icon_names = {
+            "freedraw": "freedraw.png",
+            "rectangle": "rectangle.png",
+            "circle": "circle.png",
+            "line": "line.png",
+            "text": "text.png",
+            "blur": "blur.png",
+            "arrow": "arrow.png",
+            "highlight": "highlight.png",
+            "color_picker": "color_picker.png",
+            "size_picker": "size_picker.png",
+            "save": "save.png",
+            "clear": "clear.png",
+            "undo": "undo.png",
+            "redo": "redo.png",
+            "settings": "settings.png",
+        }
+        for name, filename in icon_names.items():
+            try:
+                path = os.path.join(ICON_DIR, filename)
+                img = Image.open(path)
+                img = img.resize((16, 16), Image.LANCZOS) # Resize icons to 16x16
+                self.icons[name] = ImageTk.PhotoImage(img)
+            except FileNotFoundError:
+                print(f"Warning: Icon file not found: {filename}")
+                self.icons[name] = None # Set to None if not found
 
     def populate_cameras(self):
         # Try to find available cameras
