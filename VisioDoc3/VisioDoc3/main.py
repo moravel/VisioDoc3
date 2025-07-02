@@ -148,7 +148,7 @@ class VisioDoc3(tk.Tk):
         
         if self.camera_options:
             self.camera_var.set(self.camera_options[0][0]) # Set initial value
-            self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], command=self.select_camera)
+            self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], style='White.TMenubutton', command=self.select_camera)
             self.camera_menu.pack(side=tk.LEFT)
             self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
         else:
@@ -723,7 +723,7 @@ class VisioDoc3(tk.Tk):
         self.contrast_slider.pack(fill=tk.X, padx=10, pady=5)
 
         # Resolution control
-        ttk.Label(settings_dialog, text="Résolution:").pack(pady=5)
+        ttk.Label(settings_dialog, text="Résolution:", style='White.TLabel').pack(pady=5)
         self.resolution_var = tk.StringVar(settings_dialog)
         self.resolutions = ["640x480", "800x600", "1280x720", "1920x1080"] # Common resolutions
         self.resolution_var.set(f"{self.current_resolution[0]}x{self.current_resolution[1]}")
