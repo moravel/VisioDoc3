@@ -65,6 +65,7 @@ class VisioDoc3(tk.Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}")
+        self.configure(bg='white') # Set main window background to white
 
         # Default resolution for the camera
         self.current_resolution = (1280, 720)
@@ -84,7 +85,7 @@ class VisioDoc3(tk.Tk):
         self.current_font_size = 20 # Default font size
 
         # Main layout
-        self.main_frame = ttk.Frame(self)
+        self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         self.main_frame.grid_columnconfigure(0, weight=0) # Left panel
@@ -143,18 +144,19 @@ class VisioDoc3(tk.Tk):
             ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée").pack(side=tk.LEFT)
 
         # Right Panel (Action Buttons)
-        self.right_panel = ttk.Frame(self.main_frame, width=150)
+        self.right_panel = ttk.Frame(self.main_frame, width=150, style='White.TFrame')
         self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
         self.right_panel.grid_propagate(False)
 
-        ttk.Button(self.right_panel, text="Sauvegarder", image=self.icons.get("save"), compound=tk.LEFT, command=self.save_image).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Sauvegarder", image=self.icons.get("save"), compound=tk.LEFT, style='White.TButton', command=self.save_image).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, style='White.TButton', command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, style='White.TButton', command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, style='White.TButton', command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, style='White.TButton', command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
 
         # Add logo to the bottom of the right panel
-        logo_label = ttk.Label(self.right_panel, image=self.icons.get("logo"))
+        self.logo_photo = self.icons.get("logo") # Store a reference to prevent garbage collection
+        logo_label = ttk.Label(self.right_panel, image=self.logo_photo)
         logo_label.pack(side=tk.BOTTOM, pady=10)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
