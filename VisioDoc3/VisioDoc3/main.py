@@ -153,6 +153,10 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
 
+        # Add logo to the bottom of the right panel
+        logo_label = ttk.Label(self.right_panel, image=self.icons.get("logo"))
+        logo_label.pack(side=tk.BOTTOM, pady=10)
+
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
 
@@ -173,6 +177,7 @@ class VisioDoc3(tk.Tk):
             "undo": "undo.png",
             "redo": "redo.png",
             "settings": "settings.png",
+            "logo": "logo.png",
         }
         for name, filename in icon_names.items():
             try:
