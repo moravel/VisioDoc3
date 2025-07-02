@@ -147,11 +147,11 @@ class VisioDoc3(tk.Tk):
         self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
         self.right_panel.grid_propagate(False)
 
-        ttk.Button(self.right_panel, text="Sauvegarder", command=self.save_image).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Effacer Tout", command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Annuler (Undo)", command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Rétablir (Redo)", command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Paramètres", command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Sauvegarder", image=self.icons.get("save"), compound=tk.LEFT, command=self.save_image).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
