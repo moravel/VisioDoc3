@@ -94,6 +94,7 @@ class VisioDoc3(tk.Tk):
         self.current_annotation_color = (0, 0, 255) # Default to blue (BGR for OpenCV)
         self.current_annotation_thickness = 2 # Default thickness
         self.current_font_size = 20 # Default font size
+        self.selected_annotation = None # To store the selected annotation object
 
         # Main layout
         self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
@@ -121,6 +122,7 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.left_panel, text="Zone de Flou", image=self.icons.get("blur"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Flèche", image=self.icons.get("arrow"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Surlignage", image=self.icons.get("highlight"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Sélection", image=self.icons.get("selection"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("selection")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
 
@@ -191,6 +193,7 @@ class VisioDoc3(tk.Tk):
             "redo": "redo.png",
             "settings": "settings.png",
             "logo": "logoVisioDoc3.png",
+            "selection": "selection.png",
         }
         for name, filename in icon_names.items():
             try:
@@ -258,8 +261,16 @@ class VisioDoc3(tk.Tk):
                 for annotation in self.annotations:
                     annotation.draw(display_frame)
 
+                # Draw bounding box for selected annotation
+                if self.selected_annotation:
+                    bbox = self.selected_annotation.get_bounding_box()
+                    if bbox:
+                        p1 = (bbox[0], bbox[1])
+                        p2 = (bbox[2], bbox[3])
+                        cv2.rectangle(display_frame, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
+
                 # Draw temporary annotation if currently drawing
-                if self.drawing and self.start_point and self.end_point:
+                if self.drawing and self.start_point and self.end_point and self.current_tool != "selection":
                     if self.current_tool == "line":
                         temp_annotation = LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
@@ -371,6 +382,8 @@ class VisioDoc3(tk.Tk):
         elif tool_name == "highlight":
             self.start_point = None
             self.end_point = None
+        elif tool_name == "selection":
+            self.selected_annotation = None
 
     def save_image(self):
         if self.pil_image_to_save:
@@ -416,243 +429,151 @@ class VisioDoc3(tk.Tk):
             messagebox.showwarning("Avertissement", "Aucune image à sauvegarder.")
 
     def on_mouse_down(self, event):
-        if self.current_tool == "text":
+        # Get coordinates relative to the original frame size
+        original_width = self.video_stream_thread.get_frame().shape[1]
+        original_height = self.video_stream_thread.get_frame().shape[0]
+        
+        label_width = self.image_label.winfo_width()
+        label_height = self.image_label.winfo_height()
+
+        # Calculate scaling factor and offset
+        scale_x = original_width / label_width
+        scale_y = original_height / label_height
+        img_ratio = original_width / original_height
+        label_ratio = label_width / label_height
+
+        if img_ratio > label_ratio:
+            scaled_img_width = label_width
+            scaled_img_height = int(label_width / img_ratio)
+            offset_y = (label_height - scaled_img_height) / 2
+            offset_x = 0
+        else:
+            scaled_img_height = label_height
+            scaled_img_width = int(label_height * img_ratio)
+            offset_x = (label_width - scaled_img_width) / 2
+            offset_y = 0
+
+        click_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+
+        if self.current_tool == "selection":
+            self.selected_annotation = None
+            for annotation in reversed(self.annotations):
+                if annotation.is_point_inside(click_point):
+                    self.selected_annotation = annotation
+                    self.start_point = click_point
+                    self.drawing = True
+                    break
+        elif self.current_tool == "text":
             entered_text = self.get_text_input()
             if entered_text:
-                # Get coordinates relative to the original frame size
-                original_width = self.video_stream_thread.get_frame().shape[1]
-                original_height = self.video_stream_thread.get_frame().shape[0]
-                
-                label_width = self.image_label.winfo_width()
-                label_height = self.image_label.winfo_height()
-
-                # Calculate scaling factor
-                scale_x = original_width / label_width
-                scale_y = original_height / label_height
-
-                # Adjust for aspect ratio if image is scaled to fit
-                img_ratio = original_width / original_height
-                label_ratio = label_width / label_height
-
-                if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                    scaled_img_width = label_width
-                    scaled_img_height = int(label_width / img_ratio)
-                    offset_y = (label_height - scaled_img_height) / 2
-                    offset_x = 0
-                else: # Image is taller than label, width is scaled to fit
-                    scaled_img_height = label_height
-                    scaled_img_width = int(label_height * img_ratio)
-                    offset_x = (label_width - scaled_img_width) / 2
-                    offset_y = 0
-
-                # Convert mouse coordinates to original frame coordinates
-                text_position = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-                self.annotations.append(TextAnnotation(text_position, entered_text, color=self.current_annotation_color, font_size=self.current_font_size))
-                self.undo_stack.append(self.annotations[:]) # Save state for undo
-                self.redo_stack.clear() # Clear redo stack on new annotation
-                self.set_tool("none") # Go back to selection tool
+                self.annotations.append(TextAnnotation(click_point, entered_text, color=self.current_annotation_color, font_size=self.current_font_size))
+                self.redo_stack.clear()
+                self.set_tool("selection")
         elif self.current_tool != "none":
             self.drawing = True
-            # Get coordinates relative to the original frame size
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            # Calculate scaling factor
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-
-            # Adjust for aspect ratio if image is scaled to fit
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else: # Image is taller than label, width is scaled to fit
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            # Convert mouse coordinates to original frame coordinates
-            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-            self.end_point = self.start_point # For single click tools or initial point
-        elif self.current_tool == "blur":
-            self.drawing = True
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio:
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else:
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-            self.end_point = self.start_point # Initialize end_point for drag
-        elif self.current_tool == "arrow":
-            self.drawing = True
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio:
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else:
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-            self.end_point = self.start_point # Initialize end_point for drag
-        elif self.current_tool == "highlight":
-            self.drawing = True
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio:
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else:
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            self.start_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-            self.end_point = self.start_point # Initialize end_point for drag
+            self.start_point = click_point
+            self.end_point = click_point
 
     def on_mouse_drag(self, event):
-        if self.drawing and self.current_tool in ["line", "rectangle", "freedraw", "blur", "arrow", "highlight"]:
-            # Get coordinates relative to the original frame size
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
+        if not self.drawing:
+            return
 
-            # Calculate scaling factor
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
+        # Get coordinates relative to the original frame size
+        original_width = self.video_stream_thread.get_frame().shape[1]
+        original_height = self.video_stream_thread.get_frame().shape[0]
+        
+        label_width = self.image_label.winfo_width()
+        label_height = self.image_label.winfo_height()
 
-            # Adjust for aspect ratio if image is scaled to fit
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
+        # Calculate scaling factor and offset
+        scale_x = original_width / label_width
+        scale_y = original_height / label_height
+        img_ratio = original_width / original_height
+        label_ratio = label_width / label_height
 
-            if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else: # Image is taller than label, width is scaled to fit
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
+        if img_ratio > label_ratio:
+            scaled_img_width = label_width
+            scaled_img_height = int(label_width / img_ratio)
+            offset_y = (label_height - scaled_img_height) / 2
+            offset_x = 0
+        else:
+            scaled_img_height = label_height
+            scaled_img_width = int(label_height * img_ratio)
+            offset_x = (label_width - scaled_img_width) / 2
+            offset_y = 0
 
-            self.end_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+        current_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
 
-            # For freedraw, add points continuously
+        if self.current_tool == "selection" and self.selected_annotation:
+            dx = current_point[0] - self.start_point[0]
+            dy = current_point[1] - self.start_point[1]
+            self.selected_annotation.move(dx, dy)
+            self.start_point = current_point
+        elif self.current_tool != "selection":
+            self.end_point = current_point
             if self.current_tool == "freedraw":
                 self.current_freedraw_points.append(self.end_point)
 
     def on_mouse_up(self, event):
-        if self.drawing:
-            self.drawing = False
-            # Get coordinates relative to the original frame size
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
+        if not self.drawing:
+            return
 
-            # Calculate scaling factor
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
+        self.drawing = False
+        
+        if self.current_tool == "selection":
+            self.selected_annotation = None
+            return
 
-            # Adjust for aspect ratio if image is scaled to fit
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
+        # Get coordinates relative to the original frame size
+        original_width = self.video_stream_thread.get_frame().shape[1]
+        original_height = self.video_stream_thread.get_frame().shape[0]
+        
+        label_width = self.image_label.winfo_width()
+        label_height = self.image_label.winfo_height()
 
-            if img_ratio > label_ratio: # Image is wider than label, height is scaled to fit
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else: # Image is taller than label, width is scaled to fit
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
+        # Calculate scaling factor and offset
+        scale_x = original_width / label_width
+        scale_y = original_height / label_height
+        img_ratio = original_width / original_height
+        label_ratio = label_width / label_height
 
-            final_x = int((event.x - offset_x) * scale_x)
-            final_y = int((event.y - offset_y) * scale_y)
-            self.end_point = (final_x, final_y)
+        if img_ratio > label_ratio:
+            scaled_img_width = label_width
+            scaled_img_height = int(label_width / img_ratio)
+            offset_y = (label_height - scaled_img_height) / 2
+            offset_x = 0
+        else:
+            scaled_img_height = label_height
+            scaled_img_width = int(label_height * img_ratio)
+            offset_x = (label_width - scaled_img_width) / 2
+            offset_y = 0
 
-            if self.current_tool == "line":
-                self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
-            elif self.current_tool == "rectangle":
-                self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
-            elif self.current_tool == "circle":
-                center_x = (self.start_point[0] + self.end_point[0]) // 2
-                center_y = (self.start_point[1] + self.end_point[1]) // 2
-                radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
-                print(f"Adding CircleAnnotation with color: {self.current_annotation_color}")
-            elif self.current_tool == "freedraw":
-                if self.current_freedraw_points:
-                    self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=self.current_annotation_thickness))
-                self.current_freedraw_points = [] # Reset for next freedraw
-            elif self.current_tool == "blur":
-                self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
-            elif self.current_tool == "arrow":
-                self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
-            elif self.current_tool == "highlight":
-                self.annotations.append(HighlightAnnotation(self.start_point, self.end_point, color=self.current_annotation_color))
-            # Add other tools here
-            self.redo_stack.clear() # Clear redo stack on new annotation
+        final_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+        self.end_point = final_point
+
+        if self.current_tool == "line":
+            self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+        elif self.current_tool == "rectangle":
+            self.annotations.append(RectangleAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+        elif self.current_tool == "circle":
+            center_x = (self.start_point[0] + self.end_point[0]) // 2
+            center_y = (self.start_point[1] + self.end_point[1]) // 2
+            radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
+            self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+        elif self.current_tool == "freedraw":
+            if self.current_freedraw_points:
+                self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+            self.current_freedraw_points = []
+        elif self.current_tool == "blur":
+            self.annotations.append(BlurAnnotation(self.start_point, self.end_point))
+        elif self.current_tool == "arrow":
+            self.annotations.append(ArrowAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+        elif self.current_tool == "highlight":
+            self.annotations.append(HighlightAnnotation(self.start_point, self.end_point, color=self.current_annotation_color))
+        
+        self.redo_stack.clear()
+        self.start_point = None
+        self.end_point = None
 
             
 

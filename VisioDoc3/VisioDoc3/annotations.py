@@ -15,6 +15,18 @@ class Annotation:
         # This method will be overridden by specific annotation types for PIL
         pass
 
+    def is_point_inside(self, point):
+        # This method will be overridden by specific annotation types
+        return False
+
+    def move(self, dx, dy):
+        # This method will be overridden by specific annotation types
+        pass
+
+    def get_bounding_box(self):
+        # This method will be overridden by specific annotation types
+        return None
+
 class LineAnnotation(Annotation):
     def __init__(self, start_point, end_point, color, thickness=2):
         super().__init__(color, thickness)
@@ -27,6 +39,37 @@ class LineAnnotation(Annotation):
     def draw_pil(self, draw_obj):
         pil_color = (self.color[2], self.color[1], self.color[0]) # Convert BGR to RGB
         draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
+
+    def is_point_inside(self, point):
+        # Check if the point is close to the line segment
+        x, y = point
+        x1, y1 = self.start_point
+        x2, y2 = self.end_point
+        
+        # A small tolerance for clicking near the line
+        tolerance = self.thickness + 5 
+
+        # Check if the point is within the bounding box of the line segment
+        if not (min(x1, x2) - tolerance <= x <= max(x1, x2) + tolerance and 
+                min(y1, y2) - tolerance <= y <= max(y1, y2) + tolerance):
+            return False
+
+        # Calculate the distance from the point to the line
+        # Using the formula for the distance from a point to a line
+        try:
+            distance = abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
+            return distance <= tolerance
+        except ZeroDivisionError: # Handle vertical or horizontal lines
+            return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+
+    def move(self, dx, dy):
+        self.start_point = (self.start_point[0] + dx, self.start_point[1] + dy)
+        self.end_point = (self.end_point[0] + dx, self.end_point[1] + dy)
+
+    def get_bounding_box(self):
+        x1, y1 = self.start_point
+        x2, y2 = self.end_point
+        return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
 
 class RectangleAnnotation(Annotation):
     def __init__(self, p1, p2, color, thickness=2, filled=False):
@@ -47,6 +90,21 @@ class RectangleAnnotation(Annotation):
             draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
         else:
             draw_obj.rectangle([self.p1, self.p2], outline=pil_color, width=self.thickness)
+
+    def is_point_inside(self, point):
+        x, y = point
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+
+    def move(self, dx, dy):
+        self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
+        self.p2 = (self.p2[0] + dx, self.p2[1] + dy)
+
+    def get_bounding_box(self):
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
 
 class CircleAnnotation(Annotation):
     def __init__(self, center, radius, color=(0, 0, 255), thickness=2, filled=False):
@@ -70,6 +128,17 @@ class CircleAnnotation(Annotation):
         else:
             draw_obj.ellipse(bbox, outline=pil_color, width=self.thickness)
 
+    def is_point_inside(self, point):
+        distance = np.sqrt((point[0] - self.center[0])**2 + (point[1] - self.center[1])**2)
+        return distance <= self.radius
+
+    def move(self, dx, dy):
+        self.center = (self.center[0] + dx, self.center[1] + dy)
+
+    def get_bounding_box(self):
+        x, y = self.center
+        return (x - self.radius, y - self.radius, x + self.radius, y + self.radius)
+
 class FreeDrawAnnotation(Annotation):
     def __init__(self, points, color, thickness=2):
         super().__init__(color, thickness)
@@ -82,6 +151,23 @@ class FreeDrawAnnotation(Annotation):
     def draw_pil(self, draw_obj):
         pil_color = (self.color[2], self.color[1], self.color[0])
         draw_obj.line(self.points, fill=pil_color, width=self.thickness, joint="curve")
+
+    def is_point_inside(self, point):
+        for i in range(len(self.points) - 1):
+            line_segment = LineAnnotation(self.points[i], self.points[i+1], self.color, self.thickness)
+            if line_segment.is_point_inside(point):
+                return True
+        return False
+
+    def move(self, dx, dy):
+        self.points = [(p[0] + dx, p[1] + dy) for p in self.points]
+
+    def get_bounding_box(self):
+        if not self.points:
+            return None
+        x_coords = [p[0] for p in self.points]
+        y_coords = [p[1] for p in self.points]
+        return (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
 
 class TextAnnotation(Annotation):
     def __init__(self, position, text, font_size=20, color=(0, 0, 255)):
@@ -105,6 +191,24 @@ class TextAnnotation(Annotation):
         
         pil_color = (self.color[2], self.color[1], self.color[0])
         draw_obj.text(self.position, self.text, font=font, fill=pil_color)
+
+    def is_point_inside(self, point):
+        # Approximate bounding box for the text
+        # This is a simplification, a more accurate method would use font metrics
+        text_width = len(self.text) * self.font_size // 2
+        text_height = self.font_size
+        x, y = point
+        x1, y1 = self.position
+        return x1 <= x <= x1 + text_width and y1 - text_height <= y <= y1
+
+    def move(self, dx, dy):
+        self.position = (self.position[0] + dx, self.position[1] + dy)
+
+    def get_bounding_box(self):
+        text_width = len(self.text) * self.font_size // 2
+        text_height = self.font_size
+        x1, y1 = self.position
+        return (x1, y1 - text_height, x1 + text_width, y1)
 
 class BlurAnnotation(Annotation):
     def __init__(self, p1, p2, blur_strength=25):
@@ -136,6 +240,21 @@ class BlurAnnotation(Annotation):
         # it to ImageDraw.Draw.
         pass
 
+    def is_point_inside(self, point):
+        x, y = point
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+
+    def move(self, dx, dy):
+        self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
+        self.p2 = (self.p2[0] + dx, self.p2[1] + dy)
+
+    def get_bounding_box(self):
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+
 class ArrowAnnotation(Annotation):
     def __init__(self, start_point, end_point, color=(0, 0, 255), thickness=2, tip_length=0.3):
         super().__init__(color, thickness)
@@ -164,6 +283,33 @@ class ArrowAnnotation(Annotation):
         draw_obj.line([self.end_point, p1], fill=pil_color, width=self.thickness)
         draw_obj.line([self.end_point, p2], fill=pil_color, width=self.thickness)
 
+    def is_point_inside(self, point):
+        # Same logic as LineAnnotation
+        x, y = point
+        x1, y1 = self.start_point
+        x2, y2 = self.end_point
+        
+        tolerance = self.thickness + 5 
+
+        if not (min(x1, x2) - tolerance <= x <= max(x1, x2) + tolerance and 
+                min(y1, y2) - tolerance <= y <= max(y1, y2) + tolerance):
+            return False
+
+        try:
+            distance = abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
+            return distance <= tolerance
+        except ZeroDivisionError:
+            return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+
+    def move(self, dx, dy):
+        self.start_point = (self.start_point[0] + dx, self.start_point[1] + dy)
+        self.end_point = (self.end_point[0] + dx, self.end_point[1] + dy)
+
+    def get_bounding_box(self):
+        x1, y1 = self.start_point
+        x2, y2 = self.end_point
+        return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+
 class HighlightAnnotation(Annotation):
     def __init__(self, p1, p2, color=(255, 255, 0), opacity=0.3):
         super().__init__(color)
@@ -190,3 +336,18 @@ class HighlightAnnotation(Annotation):
     def draw_pil(self, draw_obj):
         pil_color = (self.color[2], self.color[1], self.color[0], int(self.opacity * 255)) # RGBA
         draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
+
+    def is_point_inside(self, point):
+        x, y = point
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+
+    def move(self, dx, dy):
+        self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
+        self.p2 = (self.p2[0] + dx, self.p2[1] + dy)
+
+    def get_bounding_box(self):
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+        return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
