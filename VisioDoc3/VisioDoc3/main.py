@@ -320,7 +320,7 @@ class VisioDoc3(tk.Tk):
             self.current_annotation_color = (rgb_color[2], rgb_color[1], rgb_color[0])
 
     def choose_annotation_size(self):
-        size_dialog = tk.Toplevel(self)
+        size_dialog = tk.Toplevel(self, bg='white')
         size_dialog.title("Choisir la taille")
         size_dialog.transient(self)
         size_dialog.grab_set()
@@ -651,7 +651,7 @@ class VisioDoc3(tk.Tk):
 
     def get_text_input(self):
         self.entered_text = None # Initialize to None
-        self.text_input_dialog = tk.Toplevel(self)
+        self.text_input_dialog = tk.Toplevel(self, bg='white')
         self.text_input_dialog.title("Ajouter du Texte")
         self.text_input_dialog.transient(self) # Make it a transient window of the main app
         self.text_input_dialog.update_idletasks() # Ensure window is drawn
@@ -694,7 +694,7 @@ class VisioDoc3(tk.Tk):
             self.annotations.append(last_redone)
 
     def open_settings_dialog(self):
-        settings_dialog = tk.Toplevel(self)
+        settings_dialog = tk.Toplevel(self, bg='white')
         settings_dialog.title("Paramètres de la Caméra")
         settings_dialog.transient(self)
         settings_dialog.grab_set()
