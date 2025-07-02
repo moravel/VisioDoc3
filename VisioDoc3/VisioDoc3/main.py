@@ -67,6 +67,17 @@ class VisioDoc3(tk.Tk):
         self.geometry(f"{screen_width}x{screen_height}")
         self.configure(bg='white') # Set main window background to white
 
+        # Configure style for white theme
+        style = ttk.Style()
+        style.theme_use('clam') # Use clam theme as a base for better customization
+        style.configure('White.TFrame', background='white')
+        style.configure('White.TButton', background='white', foreground='black', borderwidth=1, relief="solid")
+        style.map('White.TButton', background=[('active', '#e0e0e0'), ('pressed', '#d0d0d0')]) # Lighter white on hover, slightly darker on press
+        style.configure('White.TLabel', background='white', foreground='black')
+        style.configure('White.TMenubutton', background='white', foreground='black', borderwidth=1, relief="solid")
+        style.map('White.TMenubutton', background=[('active', '#e0e0e0'), ('pressed', '#d0d0d0')])
+        style.configure('White.Horizontal.TScale', background='white', troughcolor='#e0e0e0')
+
         # Default resolution for the camera
         self.current_resolution = (1280, 720)
 
@@ -141,7 +152,7 @@ class VisioDoc3(tk.Tk):
             self.camera_menu.pack(side=tk.LEFT)
             self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
         else:
-            ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée").pack(side=tk.LEFT)
+            ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée", style='White.TLabel').pack(side=tk.LEFT)
 
         # Right Panel (Action Buttons)
         self.right_panel = ttk.Frame(self.main_frame, width=150, style='White.TFrame')
@@ -706,8 +717,8 @@ class VisioDoc3(tk.Tk):
         self.brightness_slider.pack(fill=tk.X, padx=10, pady=5)
 
         # Contrast control
-        ttk.Label(settings_dialog, text="Contraste:").pack(pady=5)
-        self.contrast_slider = ttk.Scale(settings_dialog, from_=0, to_=255, orient=tk.HORIZONTAL, command=self.set_contrast)
+        ttk.Label(settings_dialog, text="Contraste:", background='white', style='White.TLabel').pack(pady=5)
+        self.contrast_slider = ttk.Scale(settings_dialog, from_=0, to_=255, orient=tk.HORIZONTAL, style='White.Horizontal.TScale', command=self.set_contrast)
         self.contrast_slider.set(self.video_stream_thread.cap.get(cv2.CAP_PROP_CONTRAST) if self.video_stream_thread and self.video_stream_thread.cap else 128)
         self.contrast_slider.pack(fill=tk.X, padx=10, pady=5)
 
