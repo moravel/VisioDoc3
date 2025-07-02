@@ -94,7 +94,7 @@ class VisioDoc3(tk.Tk):
         self.main_frame.grid_rowconfigure(0, weight=1)
 
         # Left Panel (Annotation Tools)
-        self.left_panel = ttk.Frame(self.main_frame, width=150)
+        self.left_panel = ttk.Frame(self.main_frame, width=150, style='White.TFrame')
         self.left_panel.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
         self.left_panel.grid_propagate(False) # Prevent frame from resizing to content
 
@@ -102,16 +102,16 @@ class VisioDoc3(tk.Tk):
         self.icons = {}
         self._load_icons()
 
-        ttk.Button(self.left_panel, text="Dessin Main Levée", image=self.icons.get("freedraw"), compound=tk.LEFT, command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Rectangle", image=self.icons.get("rectangle"), compound=tk.LEFT, command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Cercle", image=self.icons.get("circle"), compound=tk.LEFT, command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Ligne", image=self.icons.get("line"), compound=tk.LEFT, command=lambda: self.set_tool("line")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Ajouter Texte", image=self.icons.get("text"), compound=tk.LEFT, command=lambda: self.set_tool("text")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Zone de Flou", image=self.icons.get("blur"), compound=tk.LEFT, command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Flèche", image=self.icons.get("arrow"), compound=tk.LEFT, command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Surlignage", image=self.icons.get("highlight"), compound=tk.LEFT, command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
-        ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Dessin Main Levée", image=self.icons.get("freedraw"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Rectangle", image=self.icons.get("rectangle"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Cercle", image=self.icons.get("circle"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Ligne", image=self.icons.get("line"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("line")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Ajouter Texte", image=self.icons.get("text"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("text")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Zone de Flou", image=self.icons.get("blur"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Flèche", image=self.icons.get("arrow"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Surlignage", image=self.icons.get("highlight"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
+        ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
 
         # Video Display Area
         self.video_frame = ttk.Frame(self.main_frame)
@@ -156,7 +156,7 @@ class VisioDoc3(tk.Tk):
 
         # Add logo to the bottom of the right panel
         self.logo_photo = self.icons.get("logo") # Store a reference to prevent garbage collection
-        logo_label = ttk.Label(self.right_panel, image=self.logo_photo)
+        logo_label = ttk.Label(self.right_panel, image=self.logo_photo, background='white')
         logo_label.pack(side=tk.BOTTOM, pady=10)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
