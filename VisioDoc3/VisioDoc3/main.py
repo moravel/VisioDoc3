@@ -95,6 +95,7 @@ class VisioDoc3(tk.Tk):
         self.current_annotation_thickness = 2 # Default thickness
         self.current_font_size = 20 # Default font size
         self.selected_annotation = None # To store the selected annotation object
+        self.hovered_annotation = None # To store the annotation currently under the mouse
 
         # Main layout
         self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
@@ -137,6 +138,7 @@ class VisioDoc3(tk.Tk):
         self.image_label.bind("<Button-1>", self.on_mouse_down)
         self.image_label.bind("<B1-Motion>", self.on_mouse_drag)
         self.image_label.bind("<ButtonRelease-1>", self.on_mouse_up)
+        self.image_label.bind("<Motion>", self.on_mouse_move)
 
         # Camera Selection
         self.camera_selection_frame = ttk.Frame(self.video_frame)
@@ -268,6 +270,12 @@ class VisioDoc3(tk.Tk):
                         p1 = (bbox[0], bbox[1])
                         p2 = (bbox[2], bbox[3])
                         cv2.rectangle(display_frame, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
+                elif self.hovered_annotation:
+                    bbox = self.hovered_annotation.get_bounding_box()
+                    if bbox:
+                        p1 = (bbox[0], bbox[1])
+                        p2 = (bbox[2], bbox[3])
+                        cv2.rectangle(display_frame, p1, p2, (255, 165, 0), 2, cv2.LINE_AA) # Orange for hover
 
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point and self.current_tool != "selection":
@@ -384,6 +392,7 @@ class VisioDoc3(tk.Tk):
             self.end_point = None
         elif tool_name == "selection":
             self.selected_annotation = None
+            self.hovered_annotation = None
 
     def save_image(self):
         if self.pil_image_to_save:
@@ -575,6 +584,39 @@ class VisioDoc3(tk.Tk):
         self.start_point = None
         self.end_point = None
 
+    def on_mouse_move(self, event):
+        if self.current_tool == "selection" and not self.drawing:
+            # Get coordinates relative to the original frame size
+            original_width = self.video_stream_thread.get_frame().shape[1]
+            original_height = self.video_stream_thread.get_frame().shape[0]
+            
+            label_width = self.image_label.winfo_width()
+            label_height = self.image_label.winfo_height()
+
+            # Calculate scaling factor and offset
+            scale_x = original_width / label_width
+            scale_y = original_height / label_height
+            img_ratio = original_width / original_height
+            label_ratio = label_width / label_height
+
+            if img_ratio > label_ratio:
+                scaled_img_width = label_width
+                scaled_img_height = int(label_width / img_ratio)
+                offset_y = (label_height - scaled_img_height) / 2
+                offset_x = 0
+            else:
+                scaled_img_height = label_height
+                scaled_img_width = int(label_height * img_ratio)
+                offset_x = (label_width - scaled_img_width) / 2
+                offset_y = 0
+
+            mouse_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+
+            self.hovered_annotation = None
+            for annotation in reversed(self.annotations):
+                if annotation.is_point_inside(mouse_point):
+                    self.hovered_annotation = annotation
+                    break
             
 
     

@@ -46,8 +46,8 @@ class LineAnnotation(Annotation):
         x1, y1 = self.start_point
         x2, y2 = self.end_point
         
-        # A small tolerance for clicking near the line
-        tolerance = self.thickness + 5 
+        # Increased tolerance for easier selection
+        tolerance = self.thickness + 10
 
         # Check if the point is within the bounding box of the line segment
         if not (min(x1, x2) - tolerance <= x <= max(x1, x2) + tolerance and 
@@ -55,11 +55,10 @@ class LineAnnotation(Annotation):
             return False
 
         # Calculate the distance from the point to the line
-        # Using the formula for the distance from a point to a line
         try:
             distance = abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
             return distance <= tolerance
-        except ZeroDivisionError: # Handle vertical or horizontal lines
+        except ZeroDivisionError:
             return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
 
     def move(self, dx, dy):
@@ -80,12 +79,12 @@ class RectangleAnnotation(Annotation):
 
     def draw(self, frame):
         if self.filled:
-            cv2.rectangle(frame, self.p1, self.p2, self.color, -1) # -1 for filled
+            cv2.rectangle(frame, self.p1, self.p2, self.color, -1)
         else:
             cv2.rectangle(frame, self.p1, self.p2, self.color, self.thickness)
 
     def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0]) # Convert BGR to RGB
+        pil_color = (self.color[2], self.color[1], self.color[0])
         if self.filled:
             draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
         else:
@@ -95,7 +94,9 @@ class RectangleAnnotation(Annotation):
         x, y = point
         x1, y1 = self.p1
         x2, y2 = self.p2
-        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+        margin = 5 # Add a margin for easier selection
+        return min(x1, x2) - margin <= x <= max(x1, x2) + margin and \
+               min(y1, y2) - margin <= y <= max(y1, y2) + margin
 
     def move(self, dx, dy):
         self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
@@ -130,7 +131,7 @@ class CircleAnnotation(Annotation):
 
     def is_point_inside(self, point):
         distance = np.sqrt((point[0] - self.center[0])**2 + (point[1] - self.center[1])**2)
-        return distance <= self.radius
+        return distance <= self.radius + 5 # Add a margin
 
     def move(self, dx, dy):
         self.center = (self.center[0] + dx, self.center[1] + dy)
@@ -142,7 +143,7 @@ class CircleAnnotation(Annotation):
 class FreeDrawAnnotation(Annotation):
     def __init__(self, points, color, thickness=2):
         super().__init__(color, thickness)
-        self.points = points # List of (x, y) tuples
+        self.points = points
 
     def draw(self, frame):
         for i in range(1, len(self.points)):
@@ -177,8 +178,6 @@ class TextAnnotation(Annotation):
         self.font_size = font_size
 
     def draw(self, frame):
-        # For OpenCV, we need to use a font that OpenCV can handle, or draw pixel by pixel
-        # For simplicity, let's use cv2.putText for now, which uses a limited set of fonts
         cv2.putText(frame, self.text, self.position, cv2.FONT_HERSHEY_SIMPLEX, 
                     self.font_size / 20, self.color, 2, cv2.LINE_AA)
 
@@ -193,13 +192,13 @@ class TextAnnotation(Annotation):
         draw_obj.text(self.position, self.text, font=font, fill=pil_color)
 
     def is_point_inside(self, point):
-        # Approximate bounding box for the text
-        # This is a simplification, a more accurate method would use font metrics
         text_width = len(self.text) * self.font_size // 2
         text_height = self.font_size
         x, y = point
         x1, y1 = self.position
-        return x1 <= x <= x1 + text_width and y1 - text_height <= y <= y1
+        margin = 5
+        return x1 - margin <= x <= x1 + text_width + margin and \
+               y1 - text_height - margin <= y <= y1 + margin
 
     def move(self, dx, dy):
         self.position = (self.position[0] + dx, self.position[1] + dy)
@@ -212,7 +211,7 @@ class TextAnnotation(Annotation):
 
 class BlurAnnotation(Annotation):
     def __init__(self, p1, p2, blur_strength=25):
-        super().__init__((0, 0, 0)) # Color and thickness are not relevant for blur, but base class requires it
+        super().__init__((0, 0, 0))
         self.p1 = p1
         self.p2 = p2
         self.blur_strength = blur_strength
@@ -220,31 +219,20 @@ class BlurAnnotation(Annotation):
     def draw(self, frame):
         x1, y1 = min(self.p1[0], self.p2[0]), min(self.p1[1], self.p2[1])
         x2, y2 = max(self.p1[0], self.p2[0]), max(self.p1[1], self.p2[1])
-
-        # Ensure coordinates are within frame boundaries
         h, w, _ = frame.shape
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(w, x2)
-        y2 = min(h, y2)
-
+        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(w, x2), min(h, y2)
         if x2 > x1 and y2 > y1:
             roi = frame[y1:y2, x1:x2]
             blurred_roi = cv2.GaussianBlur(roi, (self.blur_strength, self.blur_strength), 0)
             frame[y1:y2, x1:x2] = blurred_roi
 
-    def draw_pil(self, draw_obj):
-        # PIL drawing for blur is more complex as it requires image manipulation
-        # rather than just drawing on a Draw object. This method will be handled
-        # by directly manipulating the PIL Image object in main.py before passing
-        # it to ImageDraw.Draw.
-        pass
-
     def is_point_inside(self, point):
         x, y = point
         x1, y1 = self.p1
         x2, y2 = self.p2
-        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+        margin = 5
+        return min(x1, x2) - margin <= x <= max(x1, x2) + margin and \
+               min(y1, y2) - margin <= y <= max(y1, y2) + margin
 
     def move(self, dx, dy):
         self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
@@ -260,41 +248,19 @@ class ArrowAnnotation(Annotation):
         super().__init__(color, thickness)
         self.start_point = start_point
         self.end_point = end_point
-        self.tip_length = tip_length # Relative to arrow length
+        self.tip_length = tip_length
 
     def draw(self, frame):
         cv2.arrowedLine(frame, self.start_point, self.end_point, self.color, self.thickness, tipLength=self.tip_length)
 
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
-
-        # Calculate arrowhead points for PIL
-        # This is a simplified arrow head, can be improved for better aesthetics
-        angle = np.arctan2(self.end_point[1] - self.start_point[1], self.end_point[0] - self.start_point[0])
-        arrow_size = self.thickness * 5 # Adjust arrow head size based on thickness
-
-        # Points for the arrowhead
-        p1 = (self.end_point[0] - arrow_size * np.cos(angle - np.pi / 6),
-              self.end_point[1] - arrow_size * np.sin(angle - np.pi / 6))
-        p2 = (self.end_point[0] - arrow_size * np.cos(angle + np.pi / 6),
-              self.end_point[1] - arrow_size * np.sin(angle + np.pi / 6))
-
-        draw_obj.line([self.end_point, p1], fill=pil_color, width=self.thickness)
-        draw_obj.line([self.end_point, p2], fill=pil_color, width=self.thickness)
-
     def is_point_inside(self, point):
-        # Same logic as LineAnnotation
         x, y = point
         x1, y1 = self.start_point
         x2, y2 = self.end_point
-        
-        tolerance = self.thickness + 5 
-
+        tolerance = self.thickness + 10
         if not (min(x1, x2) - tolerance <= x <= max(x1, x2) + tolerance and 
                 min(y1, y2) - tolerance <= y <= max(y1, y2) + tolerance):
             return False
-
         try:
             distance = abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
             return distance <= tolerance
@@ -321,27 +287,19 @@ class HighlightAnnotation(Annotation):
         overlay = frame.copy()
         x1, y1 = min(self.p1[0], self.p2[0]), min(self.p1[1], self.p2[1])
         x2, y2 = max(self.p1[0], self.p2[0]), max(self.p1[1], self.p2[1])
-
-        # Ensure coordinates are within frame boundaries
         h, w, _ = frame.shape
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(w, x2)
-        y2 = min(h, y2)
-
+        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(w, x2), min(h, y2)
         if x2 > x1 and y2 > y1:
             cv2.rectangle(overlay, (x1, y1), (x2, y2), self.color, -1)
             cv2.addWeighted(overlay, self.opacity, frame, 1 - self.opacity, 0, frame)
-
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0], int(self.opacity * 255)) # RGBA
-        draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
 
     def is_point_inside(self, point):
         x, y = point
         x1, y1 = self.p1
         x2, y2 = self.p2
-        return min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2)
+        margin = 5
+        return min(x1, x2) - margin <= x <= max(x1, x2) + margin and \
+               min(y1, y2) - margin <= y <= max(y1, y2) + margin
 
     def move(self, dx, dy):
         self.p1 = (self.p1[0] + dx, self.p1[1] + dy)
