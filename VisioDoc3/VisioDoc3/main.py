@@ -96,6 +96,7 @@ class VisioDoc3(tk.Tk):
         self.current_font_size = 20 # Default font size
         self.selected_annotation = None # To store the selected annotation object
         self.hovered_annotation = None # To store the annotation currently under the mouse
+        self.resize_handle = None # To store the selected resize handle
 
         # Main layout
         self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
@@ -167,6 +168,7 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, style='White.TButton', command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, style='White.TButton', command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, style='White.TButton', command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
+        ttk.Button(self.right_panel, text="Supprimer", image=self.icons.get("delete"), compound=tk.LEFT, style='White.TButton', command=self.delete_selected_annotation).pack(fill=tk.X, pady=2)
         ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, style='White.TButton', command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
 
         # Add logo to the bottom of the right panel
@@ -174,6 +176,7 @@ class VisioDoc3(tk.Tk):
         logo_label = ttk.Label(self.right_panel, image=self.logo_photo, background='white')
         logo_label.pack(side=tk.BOTTOM, pady=10)
 
+        self.bind("<Delete>", self.delete_selected_annotation)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
 
@@ -196,6 +199,7 @@ class VisioDoc3(tk.Tk):
             "settings": "settings.png",
             "logo": "logoVisioDoc3.png",
             "selection": "selection.png",
+            "delete": "delete.png",
         }
         for name, filename in icon_names.items():
             try:
@@ -270,6 +274,10 @@ class VisioDoc3(tk.Tk):
                         p1 = (bbox[0], bbox[1])
                         p2 = (bbox[2], bbox[3])
                         cv2.rectangle(display_frame, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
+                        # Draw resize handles
+                        handles = self.selected_annotation.get_resize_handles()
+                        for handle in handles.values():
+                            cv2.rectangle(display_frame, (handle[0]-5, handle[1]-5), (handle[0]+5, handle[1]+5), (0, 255, 0), -1)
                 elif self.hovered_annotation:
                     bbox = self.hovered_annotation.get_bounding_box()
                     if bbox:
@@ -466,6 +474,18 @@ class VisioDoc3(tk.Tk):
 
         if self.current_tool == "selection":
             self.selected_annotation = None
+            self.resize_handle = None
+            # Check for resize handle click first
+            if self.hovered_annotation:
+                handles = self.hovered_annotation.get_resize_handles()
+                for handle_name, handle_pos in handles.items():
+                    if abs(handle_pos[0] - click_point[0]) < 5 and abs(handle_pos[1] - click_point[1]) < 5:
+                        self.resize_handle = handle_name
+                        self.selected_annotation = self.hovered_annotation
+                        self.start_point = click_point
+                        self.drawing = True
+                        return
+
             for annotation in reversed(self.annotations):
                 if annotation.is_point_inside(click_point):
                     self.selected_annotation = annotation
@@ -516,7 +536,10 @@ class VisioDoc3(tk.Tk):
         if self.current_tool == "selection" and self.selected_annotation:
             dx = current_point[0] - self.start_point[0]
             dy = current_point[1] - self.start_point[1]
-            self.selected_annotation.move(dx, dy)
+            if self.resize_handle:
+                self.selected_annotation.resize(self.resize_handle, dx, dy)
+            else:
+                self.selected_annotation.move(dx, dy)
             self.start_point = current_point
         elif self.current_tool != "selection":
             self.end_point = current_point
@@ -666,6 +689,15 @@ class VisioDoc3(tk.Tk):
         if self.redo_stack:
             last_redone = self.redo_stack.pop()
             self.annotations.append(last_redone)
+
+    def delete_selected_annotation(self, event=None):
+        if self.selected_annotation:
+            self.annotations.remove(self.selected_annotation)
+            self.selected_annotation = None
+            self.hovered_annotation = None
+        elif self.hovered_annotation:
+            self.annotations.remove(self.hovered_annotation)
+            self.hovered_annotation = None
 
     def open_settings_dialog(self):
         settings_dialog = tk.Toplevel(self, bg='white')

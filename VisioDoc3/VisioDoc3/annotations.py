@@ -8,24 +8,25 @@ class Annotation:
         self.thickness = thickness
 
     def draw(self, frame):
-        # This method will be overridden by specific annotation types for OpenCV
         pass
 
     def draw_pil(self, draw_obj):
-        # This method will be overridden by specific annotation types for PIL
         pass
 
     def is_point_inside(self, point):
-        # This method will be overridden by specific annotation types
         return False
 
     def move(self, dx, dy):
-        # This method will be overridden by specific annotation types
         pass
 
     def get_bounding_box(self):
-        # This method will be overridden by specific annotation types
         return None
+
+    def get_resize_handles(self):
+        return {}
+
+    def resize(self, handle, dx, dy):
+        pass
 
 class LineAnnotation(Annotation):
     def __init__(self, start_point, end_point, color, thickness=2):
@@ -36,25 +37,14 @@ class LineAnnotation(Annotation):
     def draw(self, frame):
         cv2.line(frame, self.start_point, self.end_point, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0]) # Convert BGR to RGB
-        draw_obj.line([self.start_point, self.end_point], fill=pil_color, width=self.thickness)
-
     def is_point_inside(self, point):
-        # Check if the point is close to the line segment
         x, y = point
         x1, y1 = self.start_point
         x2, y2 = self.end_point
-        
-        # Increased tolerance for easier selection
         tolerance = self.thickness + 10
-
-        # Check if the point is within the bounding box of the line segment
         if not (min(x1, x2) - tolerance <= x <= max(x1, x2) + tolerance and 
                 min(y1, y2) - tolerance <= y <= max(y1, y2) + tolerance):
             return False
-
-        # Calculate the distance from the point to the line
         try:
             distance = abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
             return distance <= tolerance
@@ -83,18 +73,11 @@ class RectangleAnnotation(Annotation):
         else:
             cv2.rectangle(frame, self.p1, self.p2, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0])
-        if self.filled:
-            draw_obj.rectangle([self.p1, self.p2], fill=pil_color)
-        else:
-            draw_obj.rectangle([self.p1, self.p2], outline=pil_color, width=self.thickness)
-
     def is_point_inside(self, point):
         x, y = point
         x1, y1 = self.p1
         x2, y2 = self.p2
-        margin = 5 # Add a margin for easier selection
+        margin = 5
         return min(x1, x2) - margin <= x <= max(x1, x2) + margin and \
                min(y1, y2) - margin <= y <= max(y1, y2) + margin
 
@@ -106,6 +89,28 @@ class RectangleAnnotation(Annotation):
         x1, y1 = self.p1
         x2, y2 = self.p2
         return (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+
+    def get_resize_handles(self):
+        x1, y1, x2, y2 = self.get_bounding_box()
+        return {
+            "top-left": (x1, y1), "top-right": (x2, y1),
+            "bottom-left": (x1, y2), "bottom-right": (x2, y2)
+        }
+
+    def resize(self, handle, dx, dy):
+        x1, y1 = self.p1
+        x2, y2 = self.p2
+
+        if handle == "top-left":
+            self.p1 = (x1 + dx, y1 + dy)
+        elif handle == "top-right":
+            self.p1 = (x1, y1 + dy)
+            self.p2 = (x2 + dx, y2)
+        elif handle == "bottom-left":
+            self.p1 = (x1 + dx, y1)
+            self.p2 = (x2, y2 + dy)
+        elif handle == "bottom-right":
+            self.p2 = (x2 + dx, y2 + dy)
 
 class CircleAnnotation(Annotation):
     def __init__(self, center, radius, color=(0, 0, 255), thickness=2, filled=False):
@@ -120,18 +125,9 @@ class CircleAnnotation(Annotation):
         else:
             cv2.circle(frame, self.center, self.radius, self.color, self.thickness)
 
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0])
-        bbox = [self.center[0] - self.radius, self.center[1] - self.radius, 
-                self.center[0] + self.radius, self.center[1] + self.radius]
-        if self.filled:
-            draw_obj.ellipse(bbox, fill=pil_color)
-        else:
-            draw_obj.ellipse(bbox, outline=pil_color, width=self.thickness)
-
     def is_point_inside(self, point):
         distance = np.sqrt((point[0] - self.center[0])**2 + (point[1] - self.center[1])**2)
-        return distance <= self.radius + 5 # Add a margin
+        return distance <= self.radius + 5
 
     def move(self, dx, dy):
         self.center = (self.center[0] + dx, self.center[1] + dy)
@@ -148,10 +144,6 @@ class FreeDrawAnnotation(Annotation):
     def draw(self, frame):
         for i in range(1, len(self.points)):
             cv2.line(frame, self.points[i-1], self.points[i], self.color, self.thickness)
-
-    def draw_pil(self, draw_obj):
-        pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.line(self.points, fill=pil_color, width=self.thickness, joint="curve")
 
     def is_point_inside(self, point):
         for i in range(len(self.points) - 1):
@@ -180,16 +172,6 @@ class TextAnnotation(Annotation):
     def draw(self, frame):
         cv2.putText(frame, self.text, self.position, cv2.FONT_HERSHEY_SIMPLEX, 
                     self.font_size / 20, self.color, 2, cv2.LINE_AA)
-
-    def draw_pil(self, draw_obj):
-        try:
-            font = ImageFont.truetype("arial.ttf", self.font_size)
-        except IOError:
-            font = ImageFont.load_default()
-            font = font.font_variant(size=self.font_size)
-        
-        pil_color = (self.color[2], self.color[1], self.color[0])
-        draw_obj.text(self.position, self.text, font=font, fill=pil_color)
 
     def is_point_inside(self, point):
         text_width = len(self.text) * self.font_size // 2
