@@ -98,6 +98,14 @@ class VisioDoc3(tk.Tk):
         self.hovered_annotation = None # To store the annotation currently under the mouse
         self.resize_handle = None # To store the selected resize handle
 
+        # Zoom and Pan state
+        self.zoom_level = 1.0
+        self.view_offset_x = 0
+        self.view_offset_y = 0
+        self.pan_start_x = 0
+        self.pan_start_y = 0
+        self.is_panning = False
+
         # Main layout
         self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -127,6 +135,15 @@ class VisioDoc3(tk.Tk):
         ttk.Button(self.left_panel, text="Sélection", image=self.icons.get("selection"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("selection")).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
         ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
+        
+        # Add a separator and zoom controls
+        ttk.Separator(self.left_panel, orient='horizontal').pack(fill='x', pady=10, padx=5)
+        zoom_frame = ttk.Frame(self.left_panel, style='White.TFrame')
+        zoom_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(zoom_frame, text="Zoom:", style='White.TLabel').pack(side=tk.LEFT, padx=5)
+        ttk.Button(zoom_frame, text="+", style='White.TButton', command=self.zoom_in, width=3).pack(side=tk.LEFT)
+        ttk.Button(zoom_frame, text="-", style='White.TButton', command=self.zoom_out, width=3).pack(side=tk.LEFT)
+
 
         # Video Display Area
         self.video_frame = ttk.Frame(self.main_frame)
@@ -140,6 +157,13 @@ class VisioDoc3(tk.Tk):
         self.image_label.bind("<B1-Motion>", self.on_mouse_drag)
         self.image_label.bind("<ButtonRelease-1>", self.on_mouse_up)
         self.image_label.bind("<Motion>", self.on_mouse_move)
+        self.image_label.bind("<MouseWheel>", self.on_mouse_wheel) # For Windows/macOS
+        self.image_label.bind("<Button-4>", self.on_mouse_wheel) # For Linux scroll up
+        self.image_label.bind("<Button-5>", self.on_mouse_wheel) # For Linux scroll down
+        self.image_label.bind("<Button-2>", self.on_pan_start) # Middle mouse button
+        self.image_label.bind("<B2-Motion>", self.on_pan_move)
+        self.image_label.bind("<ButtonRelease-2>", self.on_pan_end)
+
 
         # Camera Selection
         self.camera_selection_frame = ttk.Frame(self.video_frame)
@@ -261,8 +285,6 @@ class VisioDoc3(tk.Tk):
                 # Create a copy of the frame for display purposes
                 display_frame = frame.copy()
 
-                
-
                 # Draw existing annotations on the display frame
                 for annotation in self.annotations:
                     annotation.draw(display_frame)
@@ -273,12 +295,10 @@ class VisioDoc3(tk.Tk):
                     if bbox:
                         p1 = (int(bbox[0]), int(bbox[1]))
                         p2 = (int(bbox[2]), int(bbox[3]))
-                        print(f"Debug: Drawing bbox: {bbox}, p1: {p1}, p2: {p2}")
                         cv2.rectangle(display_frame, p1, p2, (0, 255, 0), 2, cv2.LINE_AA)
                         # Draw resize handles
                         handles = self.selected_annotation.get_resize_handles()
                         for handle in handles.values():
-                            # Draw larger resize handles
                             cv2.rectangle(display_frame, (int(handle[0])-8, int(handle[1])-8), (int(handle[0])+8, int(handle[1])+8), (0, 255, 0), -1)
                 elif self.hovered_annotation:
                     bbox = self.hovered_annotation.get_bounding_box()
@@ -289,6 +309,7 @@ class VisioDoc3(tk.Tk):
 
                 # Draw temporary annotation if currently drawing
                 if self.drawing and self.start_point and self.end_point and self.current_tool != "selection":
+                    # ... (drawing logic remains the same)
                     if self.current_tool == "line":
                         temp_annotation = LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
@@ -300,49 +321,65 @@ class VisioDoc3(tk.Tk):
                         center_y = (self.start_point[1] + self.end_point[1]) // 2
                         radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
                         temp_annotation = CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness)
-                        print(f"Creating temporary CircleAnnotation with color: {self.current_annotation_color}")
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "freedraw" and self.current_freedraw_points:
                         temp_annotation = FreeDrawAnnotation(self.current_freedraw_points, color=(0, 255, 255), thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "blur":
-                        # Draw a translucent rectangle to indicate the blur area
                         overlay = display_frame.copy()
                         x1, y1 = self.start_point
                         x2, y2 = self.end_point
-                        cv2.rectangle(overlay, (x1, y1), (x2, y2), (255, 255, 0), -1) # Blue color, filled
-                        alpha = 0.3 # Transparency factor
+                        cv2.rectangle(overlay, (x1, y1), (x2, y2), (255, 255, 0), -1)
+                        alpha = 0.3
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
                     elif self.current_tool == "arrow":
                         temp_annotation = ArrowAnnotation(self.start_point, self.end_point, color=(0, 0, 255), thickness=self.current_annotation_thickness)
                         temp_annotation.draw(display_frame)
                     elif self.current_tool == "highlight":
-                        # Draw a translucent rectangle to indicate the highlight area
                         overlay = display_frame.copy()
                         x1, y1 = self.start_point
                         x2, y2 = self.end_point
-                        cv2.rectangle(overlay, (x1, y1), (x2, y2), self.current_annotation_color, -1) # Yellow color, filled
-                        alpha = 0.3 # Transparency factor
+                        cv2.rectangle(overlay, (x1, y1), (x2, y2), self.current_annotation_color, -1)
+                        alpha = 0.3
                         display_frame = cv2.addWeighted(overlay, alpha, display_frame, 1 - alpha, 0)
 
-                # Convert the display frame to Tkinter compatible format
-                rgb_image_annotated = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
-                img_annotated = Image.fromarray(rgb_image_annotated)
+                # Convert the final annotated frame to PIL
+                final_annotated_pil = Image.fromarray(cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB))
+                original_width, original_height = final_annotated_pil.size
+
+                # Apply zoom
+                scaled_width = int(original_width * self.zoom_level)
+                scaled_height = int(original_height * self.zoom_level)
                 
-                # Resize the image to fit the label
+                if scaled_width <= 0 or scaled_height <= 0:
+                    self.after(10, self.update_video_frame)
+                    return
+
+                scaled_image = final_annotated_pil.resize((scaled_width, scaled_height), Image.LANCZOS)
+
+                # Create the final view canvas
                 label_width = self.image_label.winfo_width()
                 label_height = self.image_label.winfo_height()
+                final_view = Image.new('RGB', (label_width, label_height), (200, 200, 200))
 
-                if label_width > 0 and label_height > 0:
-                    img_width, img_height = img_annotated.size
-                    ratio = min(label_width / img_width, label_height / img_height)
-                    new_width = int(img_width * ratio)
-                    new_height = int(img_height * ratio)
-                    img_annotated = img_annotated.resize((new_width, new_height), Image.LANCZOS)
+                # Clamp offsets to valid range
+                self.clamp_offsets()
 
-                self.current_photo = ImageTk.PhotoImage(image=img_annotated)
+                # Calculate paste position
+                paste_x = -int(self.view_offset_x)
+                paste_y = -int(self.view_offset_y)
+                
+                # When zoomed out, the image is smaller than the label. Center it.
+                if scaled_width < label_width:
+                    paste_x = (label_width - scaled_width) // 2
+                if scaled_height < label_height:
+                    paste_y = (label_height - scaled_height) // 2
+
+                final_view.paste(scaled_image, (paste_x, paste_y))
+
+                self.current_photo = ImageTk.PhotoImage(image=final_view)
                 self.image_label.config(image=self.current_photo)
-                self.pil_image_to_save = img_annotated
+                self.pil_image_to_save = final_annotated_pil
         
         self.after(10, self.update_video_frame)
 
@@ -406,24 +443,21 @@ class VisioDoc3(tk.Tk):
 
     def save_image(self):
         if self.pil_image_to_save:
-            # Récupère l'image actuellement affichée (qui contient déjà les annotations)
+            # Use the full-resolution annotated image for saving
             img_to_save = self.pil_image_to_save
 
-            # Demande à l'utilisateur le chemin de sauvegarde
             file_path = filedialog.asksaveasfilename(
                 filetypes=[("Fichiers PNG", "*.png"), ("Fichiers PDF", "*.pdf")],
                 title="Sauvegarder l'image annotée"
             )
 
             if file_path:
-                # Détermine l'extension souhaitée en fonction du type de fichier sélectionné
-                selected_ext = ".png"  # Par défaut, PNG si aucune extension spécifique n'est trouvée
+                selected_ext = ".png"
                 for desc, pattern in [("Fichiers PNG", "*.png"), ("Fichiers PDF", "*.pdf")]:
                     if file_path.lower().endswith(pattern[1:]):
                         selected_ext = pattern[1:]
                         break
                 
-                # Si l'utilisateur n'a pas tapé d'extension, ou en a tapé une mauvaise, ajoute la bonne
                 name, ext = os.path.splitext(file_path)
                 if not ext or ext.lower() != selected_ext:
                     file_path = name + selected_ext
@@ -436,69 +470,60 @@ class VisioDoc3(tk.Tk):
 
                 try:
                     if ext.lower() == ".pdf":
-                        img_to_save.save(final_filename, "PDF", resolution=100.0)
-                    elif ext.lower() == ".png":
+                        img_to_save.convert('RGB').save(final_filename, "PDF", resolution=100.0)
+                    else:
                         img_to_save.save(final_filename)
-                    else:  # Repli si quelque chose d'inattendu se produit
-                        img_to_save.save(final_filename, "PNG")  # Sauvegarde en PNG par défaut
                     messagebox.showinfo("Sauvegarde", f"Image sauvegardée avec succès :\n{final_filename}")
                 except Exception as e:
                     messagebox.showerror("Erreur de Sauvegarde", f"Impossible de sauvegarder l'image :\n{e}")
         else:
             messagebox.showwarning("Avertissement", "Aucune image à sauvegarder.")
 
-    def on_mouse_down(self, event):
-        print(f"--- on_mouse_down START ---")
-        print(f"Event raw coordinates: x={event.x}, y={event.y}")
-        print(f"Current state: tool={self.current_tool}, drawing={self.drawing}, selected_annotation={self.selected_annotation is not None}, resize_handle={self.resize_handle}")
-
-        # Get coordinates relative to the original frame size
-        original_width = self.video_stream_thread.get_frame().shape[1]
-        original_height = self.video_stream_thread.get_frame().shape[0]
-        
+    def _convert_event_to_original_coords(self, event):
         label_width = self.image_label.winfo_width()
         label_height = self.image_label.winfo_height()
+        
+        frame = self.video_stream_thread.get_frame()
+        if frame is None:
+            return (0, 0)
 
-        # Calculate scaling factor and offset
-        scale_x = original_width / label_width
-        scale_y = original_height / label_height
-        img_ratio = original_width / original_height
-        label_ratio = label_width / label_height
+        original_height, original_width, _ = frame.shape
+        
+        scaled_width = original_width * self.zoom_level
+        scaled_height = original_height * self.zoom_level
 
-        if img_ratio > label_ratio:
-            scaled_img_width = label_width
-            scaled_img_height = int(label_width / img_ratio)
-            offset_y = (label_height - scaled_img_height) / 2
-            offset_x = 0
-        else:
-            scaled_img_height = label_height
-            scaled_img_width = int(label_height * img_ratio)
-            offset_x = (label_width - scaled_img_width) / 2
-            offset_y = 0
+        paste_x = -int(self.view_offset_x)
+        paste_y = -int(self.view_offset_y)
+        if scaled_width < label_width:
+            paste_x = (label_width - scaled_width) // 2
+        if scaled_height < label_height:
+            paste_y = (label_height - scaled_height) // 2
 
-        click_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-        print(f"Calculated click_point (scaled): {click_point}")
+        scaled_image_x = event.x - paste_x
+        scaled_image_y = event.y - paste_y
+
+        original_x = scaled_image_x / self.zoom_level
+        original_y = scaled_image_y / self.zoom_level
+
+        return (int(original_x), int(original_y))
+
+    def on_mouse_down(self, event):
+        click_point = self._convert_event_to_original_coords(event)
 
         if self.current_tool == "selection":
-            self.resize_handle = None # Reset resize handle on new click
-            print(f"Selection tool active. Reset resize_handle to None.")
-            
-            # Check if a resize handle of the CURRENTLY SELECTED annotation is clicked
+            self.resize_handle = None
             if self.selected_annotation:
-                print(f"An annotation is currently selected. Checking for resize handles.")
                 handles = self.selected_annotation.get_resize_handles()
                 for handle_name, handle_pos in handles.items():
-                    if abs(handle_pos[0] - click_point[0]) < 25 and abs(handle_pos[1] - click_point[1]) < 25:
+                    # Increase handle click area for usability
+                    if abs(handle_pos[0] - click_point[0]) < 15 / self.zoom_level and abs(handle_pos[1] - click_point[1]) < 15 / self.zoom_level:
                         self.resize_handle = handle_name
-                        self.initial_drag_point_for_resize = click_point # Store initial click point for resize
+                        self.initial_drag_point_for_resize = click_point
                         self.drawing = True
-                        print(f"Resize handle '{handle_name}' clicked. Setting drawing=True. start_point={self.start_point}")
-                        print(f"--- on_mouse_down END (resizing) ---")
-                        return # A handle was clicked, so we are resizing, not selecting a new annotation
+                        return
 
-            # If no handle was clicked, check if an annotation body is clicked
             newly_selected = None
-            for annotation in reversed(self.annotations): # Iterate in reverse to select topmost
+            for annotation in reversed(self.annotations):
                 if annotation.is_point_inside(click_point):
                     newly_selected = annotation
                     break
@@ -507,134 +532,53 @@ class VisioDoc3(tk.Tk):
                 self.selected_annotation = newly_selected
                 self.start_point = click_point
                 self.drawing = True
-                print(f"Annotation newly selected: {newly_selected}. Setting drawing=True. start_point={self.start_point}")
             else:
-                # If nothing was clicked, deselect the current annotation
-                print(f"No annotation or handle clicked. Deselecting current annotation.")
                 self.selected_annotation = None
                 self.drawing = False
 
         elif self.current_tool == "text":
-            print(f"Text tool active. Getting text input.")
             entered_text = self.get_text_input()
             if entered_text:
                 self.annotations.append(TextAnnotation(click_point, entered_text, color=self.current_annotation_color, font_size=self.current_font_size))
                 self.redo_stack.clear()
-                self.set_tool("selection") # Go back to selection tool after adding text
-                print(f"Text annotation added. Setting tool to 'selection'.")
-        elif self.current_tool != "none": # For other drawing tools
+                self.set_tool("selection")
+        elif self.current_tool != "none":
             self.drawing = True
             self.start_point = click_point
             self.end_point = click_point
-            print(f"Drawing tool '{self.current_tool}' active. Setting drawing=True. start_point={self.start_point}, end_point={self.end_point}")
-        print(f"--- on_mouse_down END ---")
 
     def on_mouse_drag(self, event):
-        print(f"--- on_mouse_drag START ---")
-        print(f"Event raw coordinates: x={event.x}, y={event.y}")
-        print(f"Current state: tool={self.current_tool}, drawing={self.drawing}, selected_annotation={self.selected_annotation is not None}, resize_handle={self.resize_handle}")
-
         if not self.drawing:
-            print(f"Not drawing, returning.")
-            print(f"--- on_mouse_drag END ---")
             return
 
-        # Get coordinates relative to the original frame size
-        original_width = self.video_stream_thread.get_frame().shape[1]
-        original_height = self.video_stream_thread.get_frame().shape[0]
-        
-        label_width = self.image_label.winfo_width()
-        label_height = self.image_label.winfo_height()
-
-        # Calculate scaling factor and offset
-        scale_x = original_width / label_width
-        scale_y = original_height / label_height
-        img_ratio = original_width / original_height
-        label_ratio = label_width / label_height
-
-        if img_ratio > label_ratio:
-            scaled_img_width = label_width
-            scaled_img_height = int(label_width / img_ratio)
-            offset_y = (label_height - scaled_img_height) / 2
-            offset_x = 0
-        else:
-            scaled_img_height = label_height
-            scaled_img_width = int(label_height * img_ratio)
-            offset_x = (label_width - scaled_img_width) / 2
-            offset_y = 0
-
-        current_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-        print(f"Calculated current_point (scaled): {current_point}")
+        current_point = self._convert_event_to_original_coords(event)
 
         if self.current_tool == "selection" and self.selected_annotation:
             dx = current_point[0] - self.start_point[0]
             dy = current_point[1] - self.start_point[1]
-            print(f"Selection tool, selected_annotation exists. dx={dx}, dy={dy}")
             if self.resize_handle:
-                print(f"Resizing with handle: {self.resize_handle}")
                 self.selected_annotation.resize(self.resize_handle, current_point, self.initial_drag_point_for_resize)
             else:
-                print(f"Moving annotation.")
                 self.selected_annotation.move(dx, dy)
             self.start_point = current_point
-            print(f"Updated start_point for next drag: {self.start_point}")
         elif self.current_tool != "selection":
             self.end_point = current_point
-            print(f"Drawing new annotation. end_point={self.end_point}")
             if self.current_tool == "freedraw":
                 self.current_freedraw_points.append(self.end_point)
-                print(f"FreeDraw: Added point to current_freedraw_points. Total points: {len(self.current_freedraw_points)}")
-        print(f"--- on_mouse_drag END ---")
 
     def on_mouse_up(self, event):
-        print(f"--- on_mouse_up START ---")
-        print(f"Event raw coordinates: x={event.x}, y={event.y}")
-        print(f"Current state: tool={self.current_tool}, drawing={self.drawing}, selected_annotation={self.selected_annotation is not None}, resize_handle={self.resize_handle}")
-
         if not self.drawing:
-            print(f"Not drawing, returning.")
-            print(f"--- on_mouse_up END ---")
             return
 
         self.drawing = False
-        print(f"Set drawing to False.")
-        self.resize_handle = None # Reset resize handle after resizing is done
-        print(f"Reset resize_handle to None.")
+        self.resize_handle = None
         
-        # If we were in selection mode and just finished dragging/resizing, keep the annotation selected.
-        # If we were drawing a new annotation, finalize it.
-        if self.current_tool == "selection":
-            # The selected_annotation remains selected
-            print(f"Selection tool active. Annotation remains selected.")
-            pass
-        else:
-            # Get coordinates relative to the original frame size
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            # Calculate scaling factor and offset
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio:
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else:
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            final_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
+        if self.current_tool != "selection":
+            final_point = self._convert_event_to_original_coords(event)
             self.end_point = final_point
-            print(f"Finalizing new annotation. final_point={self.end_point}")
+
+            if self.start_point == self.end_point: # Ignore zero-size shapes
+                return
 
             if self.current_tool == "line":
                 self.annotations.append(LineAnnotation(self.start_point, self.end_point, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
@@ -644,7 +588,8 @@ class VisioDoc3(tk.Tk):
                 center_x = (self.start_point[0] + self.end_point[0]) // 2
                 center_y = (self.start_point[1] + self.end_point[1]) // 2
                 radius = int(((self.end_point[0] - self.start_point[0])**2 + (self.end_point[1] - self.start_point[1])**2)**0.5 // 2)
-                self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
+                if radius > 0:
+                    self.annotations.append(CircleAnnotation((center_x, center_y), radius, color=self.current_annotation_color, thickness=self.current_annotation_thickness))
             elif self.current_tool == "freedraw":
                 if self.current_freedraw_points:
                     self.annotations.append(FreeDrawAnnotation(list(self.current_freedraw_points), color=self.current_annotation_color, thickness=self.current_annotation_thickness))
@@ -659,47 +604,90 @@ class VisioDoc3(tk.Tk):
             self.redo_stack.clear()
             self.start_point = None
             self.end_point = None
-            print(f"New annotation added. Redo stack cleared. start_point and end_point reset.")
-        print(f"--- on_mouse_up END ---")
 
     def on_mouse_move(self, event):
         if self.current_tool == "selection" and not self.drawing:
-            # Get coordinates relative to the original frame size
-            original_width = self.video_stream_thread.get_frame().shape[1]
-            original_height = self.video_stream_thread.get_frame().shape[0]
-            
-            label_width = self.image_label.winfo_width()
-            label_height = self.image_label.winfo_height()
-
-            # Calculate scaling factor and offset
-            scale_x = original_width / label_width
-            scale_y = original_height / label_height
-            img_ratio = original_width / original_height
-            label_ratio = label_width / label_height
-
-            if img_ratio > label_ratio:
-                scaled_img_width = label_width
-                scaled_img_height = int(label_width / img_ratio)
-                offset_y = (label_height - scaled_img_height) / 2
-                offset_x = 0
-            else:
-                scaled_img_height = label_height
-                scaled_img_width = int(label_height * img_ratio)
-                offset_x = (label_width - scaled_img_width) / 2
-                offset_y = 0
-
-            mouse_point = (int((event.x - offset_x) * scale_x), int((event.y - offset_y) * scale_y))
-
+            mouse_point = self._convert_event_to_original_coords(event)
             self.hovered_annotation = None
             for annotation in reversed(self.annotations):
                 if annotation.is_point_inside(mouse_point):
                     self.hovered_annotation = annotation
                     break
+
+    def zoom_in(self, event=None):
+        if event is None:
+            event = tk.Event()
+            event.x = self.image_label.winfo_width() / 2
+            event.y = self.image_label.winfo_height() / 2
+        self.zoom(1.1, event.x, event.y)
+
+    def zoom_out(self, event=None):
+        if event is None:
+            event = tk.Event()
+            event.x = self.image_label.winfo_width() / 2
+            event.y = self.image_label.winfo_height() / 2
+        self.zoom(0.9, event.x, event.y)
+
+    def on_mouse_wheel(self, event):
+        if event.num == 5 or event.delta < 0:
+            self.zoom(0.9, event.x, event.y)
+        elif event.num == 4 or event.delta > 0:
+            self.zoom(1.1, event.x, event.y)
+
+    def zoom(self, factor, x, y):
+        old_zoom_level = self.zoom_level
+        new_zoom_level = old_zoom_level * factor
+        new_zoom_level = max(0.1, min(new_zoom_level, 10.0))
+        self.zoom_level = new_zoom_level
+
+        original_x = (x + self.view_offset_x) / old_zoom_level
+        original_y = (y + self.view_offset_y) / old_zoom_level
+
+        self.view_offset_x = (original_x * self.zoom_level) - x
+        self.view_offset_y = (original_y * self.zoom_level) - y
+        
+        self.clamp_offsets()
+
+    def on_pan_start(self, event):
+        self.is_panning = True
+        self.pan_start_x = event.x
+        self.pan_start_y = event.y
+
+    def on_pan_move(self, event):
+        if self.is_panning:
+            dx = event.x - self.pan_start_x
+            dy = event.y - self.pan_start_y
+            self.view_offset_x -= dx
+            self.view_offset_y -= dy
+            self.pan_start_x = event.x
+            self.pan_start_y = event.y
+            self.clamp_offsets()
+
+    def on_pan_end(self, event):
+        self.is_panning = False
+
+    def clamp_offsets(self):
+        if self.video_stream_thread and self.video_stream_thread.get_frame() is not None:
+            original_width = self.video_stream_thread.get_frame().shape[1]
+            original_height = self.video_stream_thread.get_frame().shape[0]
             
+            scaled_width = original_width * self.zoom_level
+            scaled_height = original_height * self.zoom_level
 
-    
+            label_width = self.image_label.winfo_width()
+            label_height = self.image_label.winfo_height()
 
-    
+            if scaled_width < label_width:
+                self.view_offset_x = (scaled_width - label_width) / 2
+            else:
+                max_offset_x = scaled_width - label_width
+                self.view_offset_x = max(0, min(self.view_offset_x, max_offset_x))
+
+            if scaled_height < label_height:
+                self.view_offset_y = (scaled_height - label_height) / 2
+            else:
+                max_offset_y = scaled_height - label_height
+                self.view_offset_y = max(0, min(self.view_offset_y, max_offset_y))
 
     def get_text_input(self):
         self.entered_text = None # Initialize to None
