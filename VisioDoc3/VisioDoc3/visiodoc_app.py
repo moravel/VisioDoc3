@@ -55,7 +55,7 @@ class VisioDoc3(tk.Tk):
         self.resize_handle = None # To store the selected resize handle
 
         # Zoom and Pan state
-        self.zoom_level = 1.0
+        self.zoom_level = 1.0 # Initial zoom level, fills the entire space
         self.view_offset_x = 0
         self.view_offset_y = 0
         self.pan_start_x = 0
