@@ -171,16 +171,9 @@ class CircleAnnotation(Annotation):
         }
 
     def resize(self, handle, current_mouse_point, initial_drag_point):
-        if handle == "size":
-            # Calculate the change in x and y from the initial drag point to the current mouse point
-            dx = current_mouse_point[0] - initial_drag_point[0]
-            dy = current_mouse_point[1] - initial_drag_point[1]
-
-            # Adjust font size based on the average of dx and dy
-            # This provides a more intuitive resizing experience for text
-            font_size_change = (dx + dy) / 2
-
-            self.font_size = max(8, int(self.font_size + font_size_change)) # Ensure font size is at least 8
+        # The new radius is the distance from the center to the current mouse position.
+        new_radius = np.sqrt((current_mouse_point[0] - self.center[0])**2 + (current_mouse_point[1] - self.center[1])**2)
+        self.radius = int(new_radius)
 
 
 class FreeDrawAnnotation(Annotation):
