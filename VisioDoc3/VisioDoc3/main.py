@@ -11,6 +11,78 @@ from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, F
 
 ICON_DIR = os.path.join(os.path.dirname(__file__), "icons")
 
+class Tooltip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip_window = None
+        self.id = None
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event=None):
+        self.id = self.widget.after(500, self._show_tooltip_after_delay)
+
+    def _show_tooltip_after_delay(self):
+        self.tooltip_window = tk.Toplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True) # Remove window decorations
+        self.tooltip_window.wm_geometry("+0+0") # Set a temporary geometry to allow winfo_width/height to work
+
+        label = tk.Label(self.tooltip_window,
+                         text=self.text,
+                         background="#FFFFEA",
+                         relief="solid",
+                         borderwidth=1,
+                         font=("tahoma", "8", "normal"))
+        label.pack(padx=1)
+
+        # Force the tooltip window to update its geometry so winfo_width/height return correct values
+        self.tooltip_window.update_idletasks()
+
+        # Get widget's absolute position and size
+        x = self.widget.winfo_rootx()
+        y = self.widget.winfo_rooty()
+        width = self.widget.winfo_width()
+        height = self.widget.winfo_height()
+
+        # Calculate tooltip position (below the widget)
+        tooltip_x = x
+        tooltip_y = y + height + 5
+
+        # Get screen dimensions
+        screen_width = self.widget.winfo_screenwidth()
+        screen_height = self.widget.winfo_screenheight()
+
+        # Get tooltip dimensions
+        tooltip_width = self.tooltip_window.winfo_width()
+        tooltip_height = self.tooltip_window.winfo_height()
+
+        # Adjust tooltip_x if it goes off-screen to the right
+        if tooltip_x + tooltip_width > screen_width:
+            tooltip_x = screen_width - tooltip_width - 5 # 5 pixels padding from right edge
+
+        # Adjust tooltip_y if it goes off-screen to the bottom
+        if tooltip_y + tooltip_height > screen_height:
+            tooltip_y = y - tooltip_height - 5 # Display above the widget if no space below
+
+        # Ensure tooltip_x is not negative
+        if tooltip_x < 0:
+            tooltip_x = 0
+
+        # Ensure tooltip_y is not negative
+        if tooltip_y < 0:
+            tooltip_y = 0
+
+        self.tooltip_window.wm_geometry(f"{tooltip_width}x{tooltip_height}+{tooltip_x}+{tooltip_y}")
+
+    def hide_tooltip(self, event=None):
+        if self.id:
+            self.widget.after_cancel(self.id)
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+        self.tooltip_window = None
+        self.id = None
+
 
 class VideoStreamThread(threading.Thread):
     def __init__(self, camera_index=0, width=1280, height=720):
@@ -126,24 +198,39 @@ class VisioDoc3(tk.Tk):
         self._load_icons()
 
         ttk.Button(self.left_panel, text="Dessin Main Levée", image=self.icons.get("freedraw"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("freedraw")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de dessin à main levée (Ctrl+F)")
         ttk.Button(self.left_panel, text="Rectangle", image=self.icons.get("rectangle"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("rectangle")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil rectangle (Ctrl+R)")
         ttk.Button(self.left_panel, text="Cercle", image=self.icons.get("circle"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("circle")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil cercle (Ctrl+C)")
         ttk.Button(self.left_panel, text="Ligne", image=self.icons.get("line"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("line")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil ligne (Ctrl+L)")
         ttk.Button(self.left_panel, text="Ajouter Texte", image=self.icons.get("text"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("text")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil texte (Ctrl+T)")
         ttk.Button(self.left_panel, text="Zone de Flou", image=self.icons.get("blur"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("blur")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de flou (Ctrl+B)")
         ttk.Button(self.left_panel, text="Flèche", image=self.icons.get("arrow"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("arrow")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil flèche (Ctrl+A)")
         ttk.Button(self.left_panel, text="Surlignage", image=self.icons.get("highlight"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("highlight")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil surlignage (Ctrl+H)")
         ttk.Button(self.left_panel, text="Sélection", image=self.icons.get("selection"), compound=tk.LEFT, style='White.TButton', command=lambda: self.set_tool("selection")).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de sélection (Ctrl+S)")
         ttk.Button(self.left_panel, text="Choisir Couleur", image=self.icons.get("color_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_color).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Ouvre la palette de couleurs (Ctrl+K)")
         ttk.Button(self.left_panel, text="Choisir Taille", image=self.icons.get("size_picker"), compound=tk.LEFT, style='White.TButton', command=self.choose_annotation_size).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Ouvre le sélecteur de taille (Ctrl+I)")
         
         # Add a separator and zoom controls
         ttk.Separator(self.left_panel, orient='horizontal').pack(fill='x', pady=10, padx=5)
         zoom_frame = ttk.Frame(self.left_panel, style='White.TFrame')
         zoom_frame.pack(fill=tk.X, pady=2)
         ttk.Label(zoom_frame, text="Zoom:", style='White.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Button(zoom_frame, text="+", style='White.TButton', command=self.zoom_in, width=3).pack(side=tk.LEFT)
-        ttk.Button(zoom_frame, text="-", style='White.TButton', command=self.zoom_out, width=3).pack(side=tk.LEFT)
+        zoom_in_button = ttk.Button(zoom_frame, text="+", style='White.TButton', command=self.zoom_in, width=3)
+        zoom_in_button.pack(side=tk.LEFT)
+        Tooltip(zoom_in_button, "Zoom avant (Ctrl++)")
+        zoom_out_button = ttk.Button(zoom_frame, text="-", style='White.TButton', command=self.zoom_out, width=3)
+        zoom_out_button.pack(side=tk.LEFT)
+        Tooltip(zoom_out_button, "Zoom arrière (Ctrl+-)")
 
 
         # Video Display Area
@@ -180,6 +267,7 @@ class VisioDoc3(tk.Tk):
             self.camera_var.set(self.camera_options[0][0]) # Set initial value
             self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], style='White.TMenubutton', command=self.select_camera)
             self.camera_menu.pack(side=tk.LEFT)
+            Tooltip(self.camera_menu, "Sélectionne la webcam à utiliser")
             self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
         else:
             ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée", style='White.TLabel').pack(side=tk.LEFT)
@@ -189,12 +277,28 @@ class VisioDoc3(tk.Tk):
         self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
         self.right_panel.grid_propagate(False)
 
-        ttk.Button(self.right_panel, text="Sauvegarder", image=self.icons.get("save"), compound=tk.LEFT, style='White.TButton', command=self.save_image).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, style='White.TButton', command=self.clear_all_annotations).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, style='White.TButton', command=self.undo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, style='White.TButton', command=self.redo_last_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Supprimer", image=self.icons.get("delete"), compound=tk.LEFT, style='White.TButton', command=self.delete_selected_annotation).pack(fill=tk.X, pady=2)
-        ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, style='White.TButton', command=self.open_settings_dialog).pack(fill=tk.X, pady=2)
+        save_button = ttk.Button(self.right_panel, text="Sauvegarder", image=self.icons.get("save"), compound=tk.LEFT, style='White.TButton', command=self.save_image)
+        save_button.pack(fill=tk.X, pady=2)
+        Tooltip(save_button, "Sauvegarde l'image actuelle (Ctrl+Shift+S)")
+        clear_button = ttk.Button(self.right_panel, text="Effacer Tout", image=self.icons.get("clear"), compound=tk.LEFT, style='White.TButton', command=self.clear_all_annotations)
+        clear_button.pack(fill=tk.X, pady=2)
+        Tooltip(clear_button, "Efface toutes les annotations (Ctrl+E)")
+        undo_button = ttk.Button(self.right_panel, text="Annuler (Undo)", image=self.icons.get("undo"), compound=tk.LEFT, style='White.TButton', command=self.undo_last_annotation)
+        undo_button.pack(fill=tk.X, pady=2)
+        Tooltip(undo_button, "Annule la dernière action (Ctrl+Z)")
+        redo_button = ttk.Button(self.right_panel, text="Rétablir (Redo)", image=self.icons.get("redo"), compound=tk.LEFT, style='White.TButton', command=self.redo_last_annotation)
+        redo_button.pack(fill=tk.X, pady=2)
+        Tooltip(redo_button, "Rétablit la dernière action annulée (Ctrl+Y)")
+        delete_button = ttk.Button(self.right_panel, text="Supprimer", image=self.icons.get("delete"), compound=tk.LEFT, style='White.TButton', command=self.delete_selected_annotation)
+        delete_button.pack(fill=tk.X, pady=2)
+        Tooltip(delete_button, "Supprime l'annotation sélectionnée (Suppr)")
+        settings_button = ttk.Button(self.right_panel, text="Paramètres", image=self.icons.get("settings"), compound=tk.LEFT, style='White.TButton', command=self.open_settings_dialog)
+        settings_button.pack(fill=tk.X, pady=2)
+        Tooltip(settings_button, "Ouvre les paramètres de la caméra (Ctrl+P)")
+
+        help_button = ttk.Button(self.right_panel, text="Aide", image=self.icons.get("help"), compound=tk.LEFT, style='White.TButton', command=self.show_help)
+        help_button.pack(fill=tk.X, pady=2)
+        Tooltip(help_button, "Ouvre le manuel d'utilisation (Ctrl+?)")
 
         # Add logo to the bottom of the right panel
         self.logo_photo = self.icons.get("logo") # Store a reference to prevent garbage collection
@@ -202,6 +306,33 @@ class VisioDoc3(tk.Tk):
         logo_label.pack(side=tk.BOTTOM, pady=10)
 
         self.bind("<Delete>", self.delete_selected_annotation)
+        
+        # Keyboard Shortcuts
+        self.bind("<Control-f>", lambda event: self.set_tool("freedraw"))
+        self.bind("<Control-r>", lambda event: self.set_tool("rectangle"))
+        self.bind("<Control-c>", lambda event: self.set_tool("circle"))
+        self.bind("<Control-l>", lambda event: self.set_tool("line"))
+        self.bind("<Control-t>", lambda event: self.set_tool("text"))
+        self.bind("<Control-b>", lambda event: self.set_tool("blur"))
+        self.bind("<Control-a>", lambda event: self.set_tool("arrow"))
+        self.bind("<Control-h>", lambda event: self.set_tool("highlight"))
+        self.bind("<Control-s>", lambda event: self.set_tool("selection"))
+        
+        self.bind("<Control-Shift-S>", lambda event: self.save_image())
+        self.bind("<Control-e>", lambda event: self.clear_all_annotations())
+        self.bind("<Control-z>", lambda event: self.undo_last_annotation())
+        self.bind("<Control-y>", lambda event: self.redo_last_annotation())
+        self.bind("<Control-p>", lambda event: self.open_settings_dialog())
+        
+        self.bind("<Control-plus>", self.zoom_in)
+        self.bind("<Control-equal>", self.zoom_in) # For keyboards where + is Shift+=
+        self.bind("<Control-minus>", self.zoom_out)
+
+        self.bind("<Control-k>", lambda event: self.choose_annotation_color())
+        self.bind("<Control-i>", lambda event: self.choose_annotation_size())
+
+        self.bind("<Control-question>", lambda event: self.show_help())
+
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.update_video_frame()
 
@@ -225,6 +356,7 @@ class VisioDoc3(tk.Tk):
             "logo": "logoVisioDoc3.png",
             "selection": "selection.png",
             "delete": "delete.png",
+            "help": "help.png",
         }
         for name, filename in icon_names.items():
             try:
@@ -234,7 +366,14 @@ class VisioDoc3(tk.Tk):
                 self.icons[name] = ImageTk.PhotoImage(img)
             except FileNotFoundError:
                 print(f"Warning: Icon file not found: {filename}")
-                self.icons[name] = None # Set to None if not found
+                # Create a simple placeholder image if the icon is not found
+                if name == "help":
+                    placeholder_img = Image.new('RGBA', (16, 16), (0, 0, 0, 0)) # Transparent background
+                    draw = ImageDraw.Draw(placeholder_img)
+                    draw.text((0, 0), "?", fill=(0, 0, 0)) # Black question mark
+                    self.icons[name] = ImageTk.PhotoImage(placeholder_img)
+                else:
+                    self.icons[name] = None # Set to None if not found
         # Special handling for the logo to make it larger
         try:
             path = os.path.join(ICON_DIR, "logoVisioDoc3.png")
@@ -248,6 +387,37 @@ class VisioDoc3(tk.Tk):
         except FileNotFoundError:
             print(f"Warning: Icon file not found: logoVisioDoc3.png")
             self.icons["logo"] = None
+
+    def show_help(self):
+        help_dialog = tk.Toplevel(self)
+        help_dialog.title("Manuel d'Utilisateur VisioDoc3")
+        help_dialog.transient(self)
+        help_dialog.grab_set()
+
+        # Read the content of the manual file
+        try:
+            with open("/home/moravel/VisioDoc3/MANUEL_UTILISATEUR.md", "r", encoding="utf-8") as f:
+                manual_content = f.read()
+        except FileNotFoundError:
+            manual_content = "Erreur: Le manuel d'utilisateur n'a pas été trouvé."
+
+        text_widget = tk.Text(help_dialog, wrap="word", font=("TkDefaultFont", 10))
+        text_widget.insert(tk.END, manual_content)
+        text_widget.config(state="disabled") # Make it read-only
+        text_widget.pack(expand=True, fill="both", padx=10, pady=10)
+
+        # Add a scrollbar
+        scrollbar = ttk.Scrollbar(help_dialog, command=text_widget.yview)
+        scrollbar.pack(side="right", fill="y")
+        text_widget.config(yscrollcommand=scrollbar.set)
+
+        ttk.Button(help_dialog, text="Fermer", command=help_dialog.destroy).pack(pady=10)
+
+        # Center the dialog
+        help_dialog.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() // 2) - (help_dialog.winfo_width() // 2)
+        y = self.winfo_y() + (self.winfo_height() // 2) - (help_dialog.winfo_height() // 2)
+        help_dialog.geometry(f"{help_dialog.winfo_width()}x{help_dialog.winfo_height()}+{x}+{y}")
 
     def populate_cameras(self):
         # Try to find available cameras
