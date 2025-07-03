@@ -105,6 +105,7 @@ class VisioDoc3(tk.Tk):
         self.pan_start_x = 0
         self.pan_start_y = 0
         self.is_panning = False
+        self.view_for_saving = None
 
         # Main layout
         self.main_frame = ttk.Frame(self, style='White.TFrame') # Apply custom style
@@ -380,6 +381,7 @@ class VisioDoc3(tk.Tk):
                 self.current_photo = ImageTk.PhotoImage(image=final_view)
                 self.image_label.config(image=self.current_photo)
                 self.pil_image_to_save = final_annotated_pil
+                self.view_for_saving = final_view
         
         self.after(10, self.update_video_frame)
 
@@ -442,9 +444,8 @@ class VisioDoc3(tk.Tk):
             self.hovered_annotation = None
 
     def save_image(self):
-        if self.pil_image_to_save:
-            # Use the full-resolution annotated image for saving
-            img_to_save = self.pil_image_to_save
+        if hasattr(self, 'view_for_saving'):
+            img_to_save = self.view_for_saving
 
             file_path = filedialog.asksaveasfilename(
                 filetypes=[("Fichiers PNG", "*.png"), ("Fichiers PDF", "*.pdf")],
