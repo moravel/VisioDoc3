@@ -280,7 +280,7 @@ class VisioDoc3(tk.Tk):
 
         # Read the content of the manual file
         try:
-            with open("/home/moravel/VisioDoc3/MANUEL_UTILISATEUR.md", "r", encoding="utf-8") as f:
+            with open("/home/moravel/dev/VisioDoc3/VisioDoc3/MANUEL_UTILISATEUR.md", "r", encoding="utf-8") as f:
                 manual_content = f.read()
         except FileNotFoundError:
             manual_content = "Erreur: Le manuel d'utilisateur n'a pas été trouvé."
