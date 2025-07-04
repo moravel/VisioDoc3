@@ -5,18 +5,26 @@ import cv2
 import numpy as np
 import datetime
 import os
+import sys
 import threading
 import time
 from annotations import LineAnnotation, RectangleAnnotation, CircleAnnotation, FreeDrawAnnotation, TextAnnotation, BlurAnnotation, ArrowAnnotation, HighlightAnnotation # Import new annotation classes
 from tooltip import Tooltip
 from video_stream import VideoStreamThread
 
-ICON_DIR = os.path.join(os.path.dirname(__file__), "icons")
 
 class VisioDoc3(tk.Tk):
-    ICON_DIR = os.path.join(os.path.dirname(__file__), "icons")
     def __init__(self):
         super().__init__()
+        # Determine the base path for resources (icons, manual)
+        if getattr(sys, '_MEIPASS', False):
+            # Running as a PyInstaller bundled executable
+            self.base_path = sys._MEIPASS
+        else:
+            # Running as a normal Python script
+            self.base_path = os.path.dirname(__file__)
+
+        self.ICON_DIR = os.path.join(self.base_path, "icons")
         self.title("VisioDoc3 - Visionneuse de Documents")
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -239,12 +247,11 @@ class VisioDoc3(tk.Tk):
             "settings": "settings.png",
             "logo": "logoVisioDoc3.png",
             "selection": "selection.png",
-            "delete": "delete.png",
-            "help": "help.png"
+            "delete": "delete.png"
         }
         for name, filename in icon_names.items():
             try:
-                path = os.path.join(ICON_DIR, filename)
+                path = os.path.join(self.ICON_DIR, filename)
                 img = Image.open(path)
                 img = img.resize((16, 16), Image.LANCZOS) # Resize icons to 16x16
                 self.icons[name] = ImageTk.PhotoImage(img)
@@ -260,7 +267,7 @@ class VisioDoc3(tk.Tk):
                     self.icons[name] = None # Set to None if not found
         # Special handling for the logo to make it larger
         try:
-            path = os.path.join(ICON_DIR, "logoVisioDoc3.png")
+            path = os.path.join(self.ICON_DIR, "logoVisioDoc3.png")
             img = Image.open(path)
             # Resize logo to fit the panel width (150px), with some padding
             base_width = 140
@@ -280,7 +287,7 @@ class VisioDoc3(tk.Tk):
 
         # Read the content of the manual file
         try:
-            with open("/home/moravel/dev/VisioDoc3/VisioDoc3/MANUEL_UTILISATEUR.md", "r", encoding="utf-8") as f:
+            with open(os.path.join(os.path.dirname(__file__), "docs", "MANUEL_UTILISATEUR.md"), "r", encoding="utf-8") as f:
                 manual_content = f.read()
         except FileNotFoundError:
             manual_content = "Erreur: Le manuel d'utilisateur n'a pas été trouvé."
