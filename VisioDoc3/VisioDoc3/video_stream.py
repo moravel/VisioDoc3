@@ -1,6 +1,7 @@
 import threading
 import cv2
 import time
+import platform
 
 class VideoStreamThread(threading.Thread):
     def __init__(self, camera_index=0, width=1280, height=720):
@@ -14,7 +15,10 @@ class VideoStreamThread(threading.Thread):
         self.lock = threading.Lock()
 
     def run(self):
-        self.cap = cv2.VideoCapture(self.camera_index)
+        if platform.system() == "Windows":
+            self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+        else:
+            self.cap = cv2.VideoCapture(self.camera_index)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         if not self.cap.isOpened():
@@ -30,7 +34,7 @@ class VideoStreamThread(threading.Thread):
             else:
                 print("Error: Could not read frame.")
                 break
-            time.sleep(0.03) # Approx 30 FPS
+            time.sleep(0.03)  # Approx 30 FPS
         self.cap.release()
 
     def stop(self):
