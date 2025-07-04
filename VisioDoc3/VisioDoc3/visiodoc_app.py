@@ -145,16 +145,12 @@ class VisioDoc3(tk.Tk):
 
         self.camera_var = tk.StringVar(self)
         self.camera_options = []
-        self.populate_cameras()
         
-        if self.camera_options:
-            self.camera_var.set(self.camera_options[0][0]) # Set initial value
-            self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], style='White.TMenubutton', command=self.select_camera)
-            self.camera_menu.pack(side=tk.LEFT)
-            Tooltip(self.camera_menu, "Sélectionne la webcam à utiliser")
-            self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
-        else:
-            ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée", style='White.TLabel').pack(side=tk.LEFT)
+        self.camera_menu_placeholder = ttk.Label(self.camera_selection_frame, text="Recherche de caméras en cours...")
+        self.camera_menu_placeholder.pack(side=tk.LEFT)
+        
+        self.camera_population_thread = threading.Thread(target=self.populate_cameras, daemon=True)
+        self.camera_population_thread.start()
 
         # Right Panel (Action Buttons)
         self.right_panel = ttk.Frame(self.main_frame, width=150, style='White.TFrame')
@@ -244,7 +240,7 @@ class VisioDoc3(tk.Tk):
         }
         for name, filename in icon_names.items():
             try:
-                path = os.path.join(ICON_DIR, filename)
+                path = os.path.join(self.ICON_DIR, filename)
                 img = Image.open(path)
                 img = img.resize((16, 16), Image.LANCZOS) # Resize icons to 16x16
                 self.icons[name] = ImageTk.PhotoImage(img)
@@ -258,9 +254,18 @@ class VisioDoc3(tk.Tk):
                     self.icons[name] = ImageTk.PhotoImage(placeholder_img)
                 else:
                     self.icons[name] = None # Set to None if not found
+            except Exception as e:
+                print(f"Error loading icon {filename}: {e}")
+                if name == "help":
+                    placeholder_img = Image.new('RGBA', (16, 16), (0, 0, 0, 0)) # Transparent background
+                    draw = ImageDraw.Draw(placeholder_img)
+                    draw.text((0, 0), "?", fill=(0, 0, 0)) # Black question mark
+                    self.icons[name] = ImageTk.PhotoImage(placeholder_img)
+                else:
+                    self.icons[name] = None # Set to None if not found
         # Special handling for the logo to make it larger
         try:
-            path = os.path.join(ICON_DIR, "logoVisioDoc3.png")
+            path = os.path.join(self.ICON_DIR, "logoVisioDoc3.png")
             img = Image.open(path)
             # Resize logo to fit the panel width (150px), with some padding
             base_width = 140
@@ -303,21 +308,40 @@ class VisioDoc3(tk.Tk):
         y = self.winfo_y() + (self.winfo_height() // 2) - (help_dialog.winfo_height() // 2)
         help_dialog.geometry(f"{help_dialog.winfo_width()}x{help_dialog.winfo_height()}+{x}+{y}")
 
+    def update_camera_menu(self):
+        self.camera_menu_placeholder.pack_forget()
+
+        if self.camera_options:
+            # Sort cameras by index to ensure consistent order
+            self.camera_options.sort(key=lambda x: x[1])
+            self.camera_var.set(self.camera_options[0][0]) # Set initial value
+            self.camera_menu = ttk.OptionMenu(self.camera_selection_frame, self.camera_var, self.camera_options[0][0], *[opt[0] for opt in self.camera_options], style='White.TMenubutton', command=self.select_camera)
+            self.camera_menu.pack(side=tk.LEFT)
+            Tooltip(self.camera_menu, "Sélectionne la webcam à utiliser")
+            self.start_video_stream(self.camera_options[0][1], self.current_resolution[0], self.current_resolution[1])
+        else:
+            ttk.Label(self.camera_selection_frame, text="Aucune webcam trouvée", style='White.TLabel').pack(side=tk.LEFT)
+
+    def _check_camera(self, index, results_list):
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            results_list.append((f"Webcam {index}", index))
+            cap.release()
+
     def populate_cameras(self):
-        # Try to find available cameras
+        # This function now runs in a separate thread and spawns sub-threads to check cameras in parallel
+        threads = []
+        found_cameras = []
         for i in range(10): # Check up to 10 cameras
-            print(f"Attempting to open camera {i}...")
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                print(f"Successfully opened camera {i}.")
-                self.camera_options.append((f"Webcam {i}", i))
-                cap.release()
-            else:
-                print(f"Could not open camera {i}.")
-                # If a camera index fails, it doesn't necessarily mean there are no more cameras.
-                # Sometimes, higher indices might work even if lower ones don't.
-                # So, we continue checking all 10 indices.
-                pass
+            thread = threading.Thread(target=self._check_camera, args=(i, found_cameras), daemon=True)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join() # Wait for all threads to complete
+
+        self.camera_options = found_cameras
+        self.after(0, self.update_camera_menu)
 
     def start_video_stream(self, camera_index, width, height):
         if self.video_stream_thread and self.video_stream_thread.is_alive():
