@@ -50,6 +50,12 @@ Il est fortement recommandé d'utiliser un environnement virtuel pour gérer les
 
 ## Compilation pour Windows
 
+### Méthode 1 : GitHub Actions (Recommandé)
+
+Les exécutables Windows sont automatiquement construits via GitHub Actions. Après avoir poussé les changements vers la branche principale, consultez l'[onglet Actions](https://github.com/moravel/VisioDoc3/actions) pour télécharger l'exécutable construit.
+
+### Méthode 2 : Compilation locale
+
 1.  **Assurez-vous que votre environnement virtuel est activé.**
 2.  **Exécutez PyInstaller avec le fichier de spécification :**
     Le projet inclut un fichier `VisioDoc3.spec` qui configure PyInstaller pour un empaquetage correct, y compris la gestion des icônes et des fichiers de données.

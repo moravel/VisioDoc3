@@ -32,6 +32,10 @@ For detailed instructions on how to use VisioDoc3 and its various features, plea
 
 For instructions on how to compile VisioDoc3 into an executable for Windows and Linux, please refer to the [Compilation Guide](COMPILATION.md).
 
+### GitHub Actions (Recommended)
+
+Windows executables are automatically built using GitHub Actions. Check the [Actions tab](https://github.com/moravel/VisioDoc3/actions) for builds after each push to the main branch.
+
 ## Technologies Used
 
 *   Python

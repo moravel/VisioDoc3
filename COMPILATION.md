@@ -50,6 +50,12 @@ It's highly recommended to use a virtual environment to manage project dependenc
 
 ## Compiling for Windows
 
+### Method 1: GitHub Actions (Recommended)
+
+Windows executables are automatically built using GitHub Actions. After pushing changes to the main branch, check the [Actions tab](https://github.com/moravel/VisioDoc3/actions) to download the built executable.
+
+### Method 2: Local Compilation
+
 1.  **Ensure your virtual environment is activated.**
 2.  **Run PyInstaller with the spec file:**
     The project includes a `VisioDoc3.spec` file which configures PyInstaller for correct packaging, including handling icons and data files.
