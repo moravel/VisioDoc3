@@ -6,13 +6,12 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('icons', 'icons')],
-    hiddenimports=[],
+    hiddenimports=['PIL._tkinter_finder', 'PIL.ImageTk'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
-    optimize=0,
 )
 pyz = PYZ(a.pure)
 splash = Splash(
@@ -46,5 +45,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icons\\logoVisioDoc3.png'],
+    icon=['icons/logoVisioDoc3.png'],
 )
