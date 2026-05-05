@@ -55,10 +55,10 @@ class ModernButton(ttk.Button):
 
 def create_modern_button_style(style: ttk.Style, theme_colors: dict):
     """Create modern button styles for ttk."""
-    bg = theme_colors.get("surface", "#1f2937")
-    text = theme_colors.get("text_primary", "#f9fafb")
-    hover = theme_colors.get("button_hover", "#374151")
-    primary = theme_colors.get("primary", "#3b82f6")
+    bg = theme_colors.get("surface", "#f9fafb")
+    text = theme_colors.get("text_primary", "#111827")
+    hover = theme_colors.get("button_hover", "#e5e7eb")
+    primary = theme_colors.get("primary", "#2563eb")
 
     style.configure(
         "Modern.TButton",
@@ -71,7 +71,7 @@ def create_modern_button_style(style: ttk.Style, theme_colors: dict):
 
     style.map(
         "Modern.TButton",
-        background=[("active", hover), ("pressed", "#4b5563")],
+        background=[("active", hover), ("pressed", "#d1d5db")],
         relief=[("pressed", "sunken")],
     )
 
@@ -85,50 +85,8 @@ def create_modern_button_style(style: ttk.Style, theme_colors: dict):
 
     style.map(
         "ModernPrimary.TButton",
-        background=[("active", theme_colors.get("primary_hover", "#2563eb"))],
+        background=[("active", theme_colors.get("primary_hover", "#1d4ed8"))],
     )
-
-
-def create_rounded_button(
-    parent,
-    text: str,
-    command: Optional[Callable] = None,
-    bg: str = "#3b82f6",
-    fg: str = "#ffffff",
-    **kwargs,
-) -> tk.Button:
-    """Create a button with rounded appearance using canvas."""
-    canvas = tk.Canvas(
-        parent,
-        width=kwargs.pop("width", 120),
-        height=kwargs.pop("height", 36),
-        highlightthickness=0,
-        bg=bg,
-    )
-
-    corner_radius = 6
-    rect = canvas.create_round_rectangle(
-        0,
-        0,
-        int(canvas["width"]),
-        int(canvas["height"]),
-        radius=corner_radius,
-        fill=bg,
-        outline="",
-    )
-    text_id = canvas.create_text(
-        int(canvas["width"]) // 2,
-        int(canvas["height"]) // 2,
-        text=text,
-        fill=fg,
-        font=("Segoe UI", 10),
-    )
-
-    if command:
-        canvas.bind("<Button-1>", lambda e: command())
-        canvas.bind("<Enter>", lambda e: canvas.itemconfig(rect, fill=bg))
-
-    return canvas
 
 
 class HoverLabel(ttk.Label):
@@ -177,13 +135,13 @@ class ToggleButton(ttk.Checkbutton):
 
 def setup_modern_styles(style: ttk.Style, theme_colors: dict):
     """Setup all modern widget styles."""
-    bg = theme_colors.get("background", "#111827")
-    surface = theme_colors.get("surface", "#1f2937")
-    text = theme_colors.get("text_primary", "#f9fafb")
-    border = theme_colors.get("border", "#374151")
-    primary = theme_colors.get("primary", "#3b82f6")
-    hover = theme_colors.get("button_hover", "#374151")
-    pressed = theme_colors.get("button_pressed", "#4b5563")
+    bg = theme_colors.get("background", "#ffffff")
+    surface = theme_colors.get("surface", "#f9fafb")
+    text = theme_colors.get("text_primary", "#111827")
+    border = theme_colors.get("border", "#d1d5db")
+    primary = theme_colors.get("primary", "#2563eb")
+    hover = theme_colors.get("button_hover", "#e5e7eb")
+    pressed = theme_colors.get("button_pressed", "#d1d5db")
 
     style.configure("Modern.TFrame", background=surface)
     style.configure("Modern.TLabel", background=surface, foreground=text)

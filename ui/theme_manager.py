@@ -10,7 +10,7 @@ class ThemeManager:
 
     def __init__(self, themes_file: Optional[str] = None):
         self.themes: Dict[str, Dict[str, Any]] = {}
-        self.current_theme: str = "dark"
+        self.current_theme: str = "light"
         self._defaults: Dict[str, Any] = {}
 
         if themes_file is None:
@@ -38,15 +38,6 @@ class ThemeManager:
     def _create_default_themes(self) -> None:
         """Create default theme definitions if file not found."""
         self.themes = {
-            "dark": {
-                "name": "Modern Dark",
-                "background": "#111827",
-                "surface": "#1f2937",
-                "primary": "#3b82f6",
-                "text_primary": "#f9fafb",
-                "text_secondary": "#d1d5db",
-                "border": "#374151",
-            },
             "light": {
                 "name": "Modern Light",
                 "background": "#ffffff",
@@ -57,11 +48,11 @@ class ThemeManager:
                 "border": "#d1d5db",
             },
         }
-        self._defaults = {"theme": "dark"}
+        self._defaults = {"theme": "light"}
 
     def get_current_theme(self) -> Dict[str, Any]:
         """Get the current theme's color definitions."""
-        return self.themes.get(self.current_theme, self.themes.get("dark", {}))
+        return self.themes.get(self.current_theme, self.themes.get("light", {}))
 
     def get_color(self, name: str, fallback: str = "#000000") -> str:
         """Get a specific color from current theme."""
@@ -91,7 +82,7 @@ class ThemeManager:
 
         bg = theme.get("background", "#ffffff")
         surface = theme.get("surface", "#f9fafb")
-        primary = theme.get("primary", "#3b82f6")
+        primary = theme.get("primary", "#2563eb")
         text = theme.get("text_primary", "#111827")
         border = theme.get("border", "#d1d5db")
         hover = theme.get("button_hover", "#e5e7eb")
