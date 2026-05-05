@@ -106,9 +106,45 @@ class ThemeManager:
             relief="solid",
         )
 
+        style.configure("Status.TLabel", background=surface, foreground=text)
+        style.configure("TopToolbar.TFrame", background=bg)
+        style.configure(
+            "Icon.TButton",
+            background=surface,
+            foreground=text,
+            borderwidth=0,
+            padding=2,
+        )
+        style.map("Icon.TButton", background=[("active", hover)])
+
+    def setup_compact_styles(self, style) -> None:
+        """Setup styles for compact sidebar and toolbar."""
+        theme = self.get_current_theme()
+        surface = theme.get("surface", "#f9fafb")
+        text = theme.get("text_primary", "#111827")
+        border = theme.get("border", "#d1d5db")
+        hover = theme.get("button_hover", "#e5e7eb")
+
+        style.configure(
+            "Sidebar.TButton",
+            background=surface,
+            foreground=text,
+            borderwidth=0,
+            padding=4,
+            anchor="w",
+        )
+        style.map("Sidebar.TButton", background=[("active", hover)])
+
+        style.configure(
+            "Toolbar.TButton",
+            background=surface,
+            foreground=text,
+            borderwidth=0,
+            padding=2,
+        )
+        style.map("Toolbar.TButton", background=[("active", hover)])
 
 _theme_manager: Optional[ThemeManager] = None
-
 
 def get_theme_manager() -> ThemeManager:
     """Get the singleton ThemeManager instance."""
