@@ -5,8 +5,11 @@ import cv2
 import numpy as np
 import datetime
 import os
-import sys  # Import sys module for executable path / Importe le module sys pour le chemin de l'exécutable
+import sys
 import platform
+
+from ui.theme_manager import get_theme_manager
+from ui.icon_loader import get_icon_loader
 
 
 def get_system_font(size):
@@ -118,83 +121,26 @@ class VisioDoc3(tk.Tk):
         Initialise la fenêtre de l'application VisioDoc3 et ses composants.
         """
         super().__init__()
-        self.title(
-            "VisioDoc3 - Visionneuse de Documents"
-        )  # Set window title / Définit le titre de la fenêtre
+        self.title("VisioDoc3 - Visionneuse de Documents")
 
-        # Get screen dimensions and set window geometry to full screen
-        # Obtient les dimensions de l'écran et définit la géométrie de la fenêtre en plein écran
+        self.theme_manager = get_theme_manager()
+        self.icon_loader = get_icon_loader()
+
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}")
-        self.configure(
-            bg="white"
-        )  # Set main window background to white / Définit l'arrière-plan de la fenêtre principale en blanc
 
-        # Configure style for a consistent white theme across ttk widgets
-        # Configure le style pour un thème blanc cohérent sur les widgets ttk
+        theme = self.theme_manager.get_current_theme()
+        self.configure(bg=theme.get("background", "#111827"))
+
         style = ttk.Style()
-        style.theme_use(
-            "clam"
-        )  # Use clam theme as a base for better customization / Utilise le thème clam comme base pour une meilleure personnalisation
-        style.configure("White.TFrame", background="white")
+        self.theme_manager.apply_ttk_style(style)
+
+        style.configure("Modern.TFrame", background=theme.get("surface", "#1f2937"))
         style.configure(
-            "White.TButton",
-            background="white",
-            foreground="black",
-            borderwidth=1,
-            relief="solid",
-        )
-        style.map(
-            "White.TButton", background=[("active", "#e0e0e0"), ("pressed", "#d0d0d0")]
-        )  # Lighter white on hover, slightly darker on press / Blanc plus clair au survol, légèrement plus foncé à la pression
-        style.configure(
-            "Compact.TButton",
-            background="white",
-            foreground="black",
-            borderwidth=0,
-            relief="flat",
-            padding=2,
-            width=3,
-        )
-        style.layout(
-            "Compact.TButton",
-            [
-                (
-                    "Button.border",
-                    {
-                        "sticky": "nswe",
-                        "children": [
-                            (
-                                "Button.padding",
-                                {
-                                    "sticky": "nswe",
-                                    "children": [("Button.label", {"sticky": ""})],
-                                },
-                            )
-                        ],
-                    },
-                )
-            ],
-        )
-        style.map(
-            "Compact.TButton",
-            background=[("active", "#e0e0e0"), ("pressed", "#d0d0d0")],
-        )
-        style.configure("White.TLabel", background="white", foreground="black")
-        style.configure(
-            "White.TMenubutton",
-            background="white",
-            foreground="black",
-            borderwidth=1,
-            relief="solid",
-        )
-        style.map(
-            "White.TMenubutton",
-            background=[("active", "#e0e0e0"), ("pressed", "#d0d0d0")],
-        )
-        style.configure(
-            "White.Horizontal.TScale", background="white", troughcolor="#e0e0e0"
+            "Modern.TLabel",
+            background=theme.get("surface", "#1f2937"),
+            foreground=theme.get("text_primary", "#f9fafb"),
         )
 
         # Default resolution for the camera stream
@@ -251,7 +197,7 @@ class VisioDoc3(tk.Tk):
 
         # Main layout frame setup
         # Configuration du cadre de mise en page principal
-        self.main_frame = ttk.Frame(self, style="White.TFrame")
+        self.main_frame = ttk.Frame(self, style="Modern.TFrame")
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Configure grid weights for responsive layout
@@ -271,7 +217,7 @@ class VisioDoc3(tk.Tk):
 
         # Left Panel (Annotation Tools) setup
         # Configuration du panneau gauche (Outils d'annotation)
-        self.left_panel = ttk.Frame(self.main_frame, width=150, style="White.TFrame")
+        self.left_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
         self.left_panel.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
         self.left_panel.grid_propagate(
             False
@@ -279,8 +225,34 @@ class VisioDoc3(tk.Tk):
 
         # Load icons for buttons
         # Charge les icônes pour les boutons
-        self.icons = {}
-        self._load_icons()
+        self.icons = self.icon_loader.preload_icons(
+            [
+                "freedraw",
+                "rectangle",
+                "circle",
+                "line",
+                "text",
+                "blur",
+                "arrow",
+                "highlight",
+                "color_picker",
+                "size_picker",
+                "save",
+                "clear",
+                "undo",
+                "redo",
+                "settings",
+                "logo",
+                "selection",
+                "delete",
+                "help",
+                "open_file",
+                "close_file",
+                "flip_horizontal",
+                "flip_vertical",
+                "fullscreen",
+            ]
+        )
 
         # Create and pack annotation tool buttons with tooltips
         # Crée et emballe les boutons d'outils d'annotation avec des info-bulles
@@ -289,7 +261,7 @@ class VisioDoc3(tk.Tk):
             text="Dessin Main Levée",
             image=self.icons.get("freedraw"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("freedraw"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -301,7 +273,7 @@ class VisioDoc3(tk.Tk):
             text="Rectangle",
             image=self.icons.get("rectangle"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("rectangle"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -312,7 +284,7 @@ class VisioDoc3(tk.Tk):
             text="Cercle",
             image=self.icons.get("circle"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("circle"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil cercle (Ctrl+C)")
@@ -321,7 +293,7 @@ class VisioDoc3(tk.Tk):
             text="Ligne",
             image=self.icons.get("line"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("line"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil ligne (Ctrl+L)")
@@ -330,7 +302,7 @@ class VisioDoc3(tk.Tk):
             text="Ajouter Texte",
             image=self.icons.get("text"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("text"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil texte (Ctrl+T)")
@@ -339,7 +311,7 @@ class VisioDoc3(tk.Tk):
             text="Zone de Flou",
             image=self.icons.get("blur"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("blur"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de flou (Ctrl+B)")
@@ -348,7 +320,7 @@ class VisioDoc3(tk.Tk):
             text="Flèche",
             image=self.icons.get("arrow"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("arrow"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil flèche (Ctrl+A)")
@@ -357,7 +329,7 @@ class VisioDoc3(tk.Tk):
             text="Surlignage",
             image=self.icons.get("highlight"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("highlight"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -368,7 +340,7 @@ class VisioDoc3(tk.Tk):
             text="Sélection",
             image=self.icons.get("selection"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=lambda: self.set_tool("selection"),
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -379,7 +351,7 @@ class VisioDoc3(tk.Tk):
             text="Choisir Couleur",
             image=self.icons.get("color_picker"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.choose_annotation_color,
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -391,7 +363,7 @@ class VisioDoc3(tk.Tk):
             text="Choisir Taille",
             image=self.icons.get("size_picker"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.choose_annotation_size,
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -404,7 +376,7 @@ class VisioDoc3(tk.Tk):
             text="Flip Horizontal",
             image=self.icons.get("flip_horizontal"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.flip_horizontal,
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -416,7 +388,7 @@ class VisioDoc3(tk.Tk):
             text="Flip Vertical",
             image=self.icons.get("flip_vertical"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.flip_vertical,
         ).pack(fill=tk.X, pady=2)
         Tooltip(
@@ -429,7 +401,7 @@ class VisioDoc3(tk.Tk):
         ttk.Separator(self.left_panel, orient="horizontal").pack(
             fill="x", pady=10, padx=5
         )
-        zoom_frame = ttk.Frame(self.left_panel, style="White.TFrame")
+        zoom_frame = ttk.Frame(self.left_panel, style="Modern.TFrame")
         zoom_frame.pack(fill=tk.X, pady=2)
         ttk.Label(zoom_frame, text="Zoom:", style="White.TLabel").pack(
             side=tk.LEFT, padx=5
@@ -437,7 +409,7 @@ class VisioDoc3(tk.Tk):
         zoom_in_button = ttk.Button(
             zoom_frame,
             text="+",
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.zoom_in,
             width=3,
         )
@@ -446,7 +418,7 @@ class VisioDoc3(tk.Tk):
         zoom_out_button = ttk.Button(
             zoom_frame,
             text="-",
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.zoom_out,
             width=3,
         )
@@ -470,7 +442,7 @@ class VisioDoc3(tk.Tk):
         self.exit_fullscreen_button = ttk.Button(
             self.video_frame,
             text="✕",
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.exit_fullscreen,
         )
         self.exit_fullscreen_button.place(relx=0.98, rely=0.02, anchor="ne")
@@ -583,7 +555,7 @@ class VisioDoc3(tk.Tk):
 
         # Right Panel (Action Buttons) setup
         # Configuration du panneau droit (Boutons d'action)
-        self.right_panel = ttk.Frame(self.main_frame, width=150, style="White.TFrame")
+        self.right_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
         self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
         self.right_panel.grid_propagate(
             False
@@ -596,7 +568,7 @@ class VisioDoc3(tk.Tk):
             text="Ouvrir Fichier",
             image=self.icons.get("open_file"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.open_file,
         )
         open_file_button.pack(fill=tk.X, pady=2)
@@ -606,7 +578,7 @@ class VisioDoc3(tk.Tk):
             text="Fermer Fichier",
             image=self.icons.get("close_file"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.close_file,
         )
         close_file_button.pack(fill=tk.X, pady=2)
@@ -617,7 +589,7 @@ class VisioDoc3(tk.Tk):
             text="Sauvegarder",
             image=self.icons.get("save"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.save_image,
         )
         save_button.pack(fill=tk.X, pady=2)
@@ -627,7 +599,7 @@ class VisioDoc3(tk.Tk):
             text="Effacer Tout",
             image=self.icons.get("clear"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.clear_all_annotations,
         )
         clear_button.pack(fill=tk.X, pady=2)
@@ -637,7 +609,7 @@ class VisioDoc3(tk.Tk):
             text="Annuler (Undo)",
             image=self.icons.get("undo"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.undo_last_annotation,
         )
         undo_button.pack(fill=tk.X, pady=2)
@@ -647,7 +619,7 @@ class VisioDoc3(tk.Tk):
             text="Rétablir (Redo)",
             image=self.icons.get("redo"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.redo_last_annotation,
         )
         redo_button.pack(fill=tk.X, pady=2)
@@ -657,7 +629,7 @@ class VisioDoc3(tk.Tk):
             text="Supprimer",
             image=self.icons.get("delete"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.delete_selected_annotation,
         )
         delete_button.pack(fill=tk.X, pady=2)
@@ -667,7 +639,7 @@ class VisioDoc3(tk.Tk):
             text="Paramètres",
             image=self.icons.get("settings"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.open_settings_dialog,
         )
         settings_button.pack(fill=tk.X, pady=2)
@@ -678,7 +650,7 @@ class VisioDoc3(tk.Tk):
             text="Aide",
             image=self.icons.get("help"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.show_help,
         )
         help_button.pack(fill=tk.X, pady=2)
@@ -690,24 +662,22 @@ class VisioDoc3(tk.Tk):
             text="Plein écran",
             image=self.icons.get("fullscreen"),
             compound=tk.LEFT,
-            style="White.TButton",
+            style="Modern.TButton",
             command=self.toggle_fullscreen,
         )
         fullscreen_button.pack(fill=tk.X, pady=2)
         Tooltip(fullscreen_button, "Active/désactive le mode plein écran (F11)")
 
-
         ttk.Separator(self.right_panel, orient="horizontal").pack(
             fill="x", pady=5, padx=5
         )
 
-        # Add application logo to the bottom of the right panel
-        # Ajoute le logo de l'application en bas du panneau droit
-        self.logo_photo = self.icons.get(
-            "logo"
-        )  # Store a reference to prevent garbage collection / Stocke une référence pour éviter la suppression par le ramasse-miettes
+        self.logo_photo = self.icon_loader.load_logo(max_width=140)
+        theme = self.theme_manager.get_current_theme()
         logo_label = ttk.Label(
-            self.right_panel, image=self.logo_photo, background="white"
+            self.right_panel,
+            image=self.logo_photo,
+            background=theme.get("panel_background", "#111827"),
         )
         logo_label.pack(side=tk.BOTTOM, pady=10)
 
@@ -809,90 +779,7 @@ class VisioDoc3(tk.Tk):
         Loads all application icons from the ICON_DIR.
         Charge toutes les icônes de l'application depuis ICON_DIR.
         """
-        icon_names = {
-            "freedraw": "freedraw.png",
-            "rectangle": "rectangle.png",
-            "circle": "circle.png",
-            "line": "line.png",
-            "text": "text.png",
-            "blur": "blur.png",
-            "arrow": "arrow.png",
-            "highlight": "highlight.png",
-            "color_picker": "color_picker.png",
-            "size_picker": "size_picker.png",
-            "save": "save.png",
-            "clear": "clear.png",
-            "undo": "undo.png",
-            "redo": "redo.png",
-            "settings": "settings.png",
-            "logo": "logoVisioDoc3.png",
-            "selection": "selection.png",
-            "delete": "delete.png",
-            "help": "help.png",
-            "open_file": "open_file.png",
-            "close_file": "close_file.png",
-            "flip_horizontal": "flip_horizontal.png",
-            "flip_vertical": "flip_vertical.png",
-            "fullscreen": "fullscreen.png",
-        }
-        for name, filename in icon_names.items():
-            try:
-                path = os.path.join(self.ICON_DIR, filename)
-                img = Image.open(path)
-                img = img.resize(
-                    (24, 24), Image.LANCZOS
-                )  # Resize icons to 24x24 for buttons / Redimensionne les icônes à 24x24 pour les boutons
-                self.icons[name] = ImageTk.PhotoImage(img)
-            except FileNotFoundError:
-                print(f"Warning: Icon file not found: {filename}")
-                # Create a simple placeholder image if the icon is not found, especially for help icon
-                # Crée une image de remplacement simple si l'icône n'est pas trouvée, en particulier pour l'icône d'aide
-                if name == "help":
-                    placeholder_img = Image.new(
-                        "RGBA", (16, 16), (0, 0, 0, 0)
-                    )  # Transparent background / Fond transparent
-                    draw = ImageDraw.Draw(placeholder_img)
-                    draw.text(
-                        (0, 0), "?", fill=(0, 0, 0)
-                    )  # Black question mark / Point d'interrogation noir
-                    self.icons[name] = ImageTk.PhotoImage(placeholder_img)
-                else:
-                    self.icons[name] = (
-                        None  # Set to None if not found / Définit à Aucun si non trouvé
-                    )
-            except Exception as e:
-                print(f"Error loading icon {filename}: {e}")
-                # Fallback for other errors during icon loading
-                # Repli pour d'autres erreurs lors du chargement des icônes
-                if name == "help":
-                    placeholder_img = Image.new(
-                        "RGBA", (16, 16), (0, 0, 0, 0)
-                    )  # Transparent background / Fond transparent
-                    draw = ImageDraw.Draw(placeholder_img)
-                    draw.text(
-                        (0, 0), "?", fill=(0, 0, 0)
-                    )  # Black question mark / Point d'interrogation noir
-                    self.icons[name] = ImageTk.PhotoImage(placeholder_img)
-                else:
-                    self.icons[name] = (
-                        None  # Set to None if not found / Définit à Aucun si non trouvé
-                    )
-
-        # Special handling for the logo to make it larger and fit the panel
-        # Traitement spécial pour le logo afin de le rendre plus grand et de l'adapter au panneau
-        try:
-            path = os.path.join(self.ICON_DIR, "logoVisioDoc3.png")
-            img = Image.open(path)
-            base_width = 140  # Desired width with some padding / Largeur souhaitée avec un certain rembourrage
-            w_percent = base_width / float(img.size[0])
-            h_size = int(
-                (float(img.size[1]) * float(w_percent))
-            )  # Calculate height to maintain aspect ratio / Calcule la hauteur pour maintenir le rapport d'aspect
-            img = img.resize((base_width, h_size), Image.LANCZOS)
-            self.icons["logo"] = ImageTk.PhotoImage(img)
-        except FileNotFoundError:
-            print(f"Warning: Icon file not found: logoVisioDoc3.png")
-            self.icons["logo"] = None
+        pass
 
     def show_help(self):
         """
