@@ -10,6 +10,8 @@ import platform
 
 from ui.theme_manager import get_theme_manager
 from ui.icon_loader import get_icon_loader
+from ui.compact_sidebar import CompactSidebar
+from ui.top_toolbar import TopToolbar
 
 
 def get_system_font(size):
@@ -142,6 +144,7 @@ class VisioDoc3(tk.Tk):
             background=theme.get("surface", "#1f2937"),
             foreground=theme.get("text_primary", "#f9fafb"),
         )
+        style.configure("Compact.TButton", padding=2)
 
         # Default resolution for the camera stream
         # Résolution par défaut pour le flux de la caméra
@@ -194,37 +197,17 @@ class VisioDoc3(tk.Tk):
         self.view_for_saving = None  # The final rendered image ready for saving / L'image finale rendue prête à être sauvegardée
 
         self.is_fullscreen = False  # Flag indicating if fullscreen mode is active / Drapeau indiquant si le mode plein écran est actif
+        self.use_hybrid_layout = (
+            True  # Flag for hybrid top toolbar + compact sidebar layout
+        )
 
         # Main layout frame setup
         # Configuration du cadre de mise en page principal
         self.main_frame = ttk.Frame(self, style="Modern.TFrame")
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Configure grid weights for responsive layout
-        # Configure les poids de la grille pour une mise en page réactive
-        self.main_frame.grid_columnconfigure(
-            0, weight=0
-        )  # Left panel (fixed width) / Panneau gauche (largeur fixe)
-        self.main_frame.grid_columnconfigure(
-            1, weight=1
-        )  # Video area (expands) / Zone vidéo (s'étend)
-        self.main_frame.grid_columnconfigure(
-            2, weight=0
-        )  # Right panel (fixed width) / Panneau droit (largeur fixe)
-        self.main_frame.grid_rowconfigure(
-            0, weight=1
-        )  # Main row (expands vertically) / Ligne principale (s'étend verticalement)
-
-        # Left Panel (Annotation Tools) setup
-        # Configuration du panneau gauche (Outils d'annotation)
-        self.left_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
-        self.left_panel.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
-        self.left_panel.grid_propagate(
-            False
-        )  # Prevent frame from resizing to content / Empêche le cadre de se redimensionner au contenu
-
-        # Load icons for buttons
-        # Charge les icônes pour les boutons
+        # Load icons for buttons (needed for both layouts)
+        # Charge les icônes pour les boutons (nécessaires pour les deux mises en page)
         self.icons = self.icon_loader.preload_icons(
             [
                 "freedraw",
@@ -254,436 +237,15 @@ class VisioDoc3(tk.Tk):
             ]
         )
 
-        # Create and pack annotation tool buttons with tooltips
-        # Crée et emballe les boutons d'outils d'annotation avec des info-bulles
-        ttk.Button(
-            self.left_panel,
-            text="Dessin Main Levée",
-            image=self.icons.get("freedraw"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("freedraw"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Active l'outil de dessin à main levée (Ctrl+F)",
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Rectangle",
-            image=self.icons.get("rectangle"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("rectangle"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil rectangle (Ctrl+R)"
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Cercle",
-            image=self.icons.get("circle"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("circle"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil cercle (Ctrl+C)")
-        ttk.Button(
-            self.left_panel,
-            text="Ligne",
-            image=self.icons.get("line"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("line"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil ligne (Ctrl+L)")
-        ttk.Button(
-            self.left_panel,
-            text="Ajouter Texte",
-            image=self.icons.get("text"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("text"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil texte (Ctrl+T)")
-        ttk.Button(
-            self.left_panel,
-            text="Zone de Flou",
-            image=self.icons.get("blur"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("blur"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de flou (Ctrl+B)")
-        ttk.Button(
-            self.left_panel,
-            text="Flèche",
-            image=self.icons.get("arrow"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("arrow"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil flèche (Ctrl+A)")
-        ttk.Button(
-            self.left_panel,
-            text="Surlignage",
-            image=self.icons.get("highlight"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("highlight"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil surlignage (Ctrl+H)"
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Sélection",
-            image=self.icons.get("selection"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("selection"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil de sélection (Ctrl+S)"
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Choisir Couleur",
-            image=self.icons.get("color_picker"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.choose_annotation_color,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Ouvre la palette de couleurs (Ctrl+K)",
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Choisir Taille",
-            image=self.icons.get("size_picker"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.choose_annotation_size,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Ouvre le sélecteur de taille (Ctrl+I)",
-        )
+        # Build layout based on mode
+        # Construire la mise en page selon le mode
+        if self.use_hybrid_layout:
+            self._build_hybrid_layout()
+        else:
+            self._build_classic_layout()
 
-        ttk.Button(
-            self.left_panel,
-            text="Flip Horizontal",
-            image=self.icons.get("flip_horizontal"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.flip_horizontal,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Retournement horizontal de l'image (Ctrl+J)",
-        )
-        ttk.Button(
-            self.left_panel,
-            text="Flip Vertical",
-            image=self.icons.get("flip_vertical"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.flip_vertical,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Retournement vertical de l'image (Ctrl+U)",
-        )
-
-        # Separator and zoom controls
-        # Séparateur et contrôles de zoom
-        ttk.Separator(self.left_panel, orient="horizontal").pack(
-            fill="x", pady=10, padx=5
-        )
-        zoom_frame = ttk.Frame(self.left_panel, style="Modern.TFrame")
-        zoom_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(zoom_frame, text="Zoom:", style="White.TLabel").pack(
-            side=tk.LEFT, padx=5
-        )
-        zoom_in_button = ttk.Button(
-            zoom_frame,
-            text="+",
-            style="Modern.TButton",
-            command=self.zoom_in,
-            width=3,
-        )
-        zoom_in_button.pack(side=tk.LEFT)
-        Tooltip(zoom_in_button, "Zoom avant (Ctrl++)")
-        zoom_out_button = ttk.Button(
-            zoom_frame,
-            text="-",
-            style="Modern.TButton",
-            command=self.zoom_out,
-            width=3,
-        )
-        zoom_out_button.pack(side=tk.LEFT)
-        Tooltip(zoom_out_button, "Zoom arrière (Ctrl+-)")
-
-        # Video Display Area setup
-        # Configuration de la zone d'affichage vidéo
-        self.video_frame = ttk.Frame(self.main_frame)
-        self.video_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.video_frame.grid_rowconfigure(0, weight=1)
-        self.video_frame.grid_columnconfigure(0, weight=1)
-
-        self.image_label = ttk.Label(
-            self.video_frame
-        )  # Label to display video frames or images / Étiquette pour afficher les cadres vidéo ou les images
-        self.image_label.grid(row=0, column=0, sticky="nsew")
-
-        # Fullscreen exit button (hidden by default, shown only in fullscreen mode)
-        # Bouton de sortie du plein écran (masqué par défaut, affiché seulement en mode plein écran)
-        self.exit_fullscreen_button = ttk.Button(
-            self.video_frame,
-            text="✕",
-            style="Modern.TButton",
-            command=self.exit_fullscreen,
-        )
-        self.exit_fullscreen_button.place(relx=0.98, rely=0.02, anchor="ne")
-        self.exit_fullscreen_button.lower()  # Keep it behind other elements initially
-
-        # Display a placeholder image while camera is loading
-        # Affiche une image de remplacement pendant le chargement de la caméra
-        self.placeholder_image = Image.new(
-            "RGB",
-            (self.current_resolution[0], self.current_resolution[1]),
-            (50, 50, 50),
-        )  # Dark grey background / Fond gris foncé
-        draw = ImageDraw.Draw(self.placeholder_image)
-        text = "Chargement de la caméra..."
-        text_color = (200, 200, 200)  # Light grey text / Texte gris clair
-        try:
-            font = get_system_font(30)
-        except IOError:
-            font = ImageFont.load_default()  # Fallback to default font if not found / Repli sur la police par défaut si non trouvée
-
-        # Calculate text position to center it
-        # Calcule la position du texte pour le centrer
-        text_bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
-        text_height = text_bbox[3] - text_bbox[1]
-        text_x = (self.current_resolution[0] - text_width) // 2
-        text_y = (self.current_resolution[1] - text_height) // 2
-        draw.text((text_x, text_y), text, font=font, fill=text_color)
-        self.current_photo = ImageTk.PhotoImage(self.placeholder_image)
-        self.image_label.config(image=self.current_photo)
-
-        # Bind mouse events for drawing, selection, zoom, and pan
-        # Lie les événements de la souris pour le dessin, la sélection, le zoom et le panoramique
-        self.image_label.bind(
-            "<Button-1>", self.on_mouse_down
-        )  # Left click / Clic gauche
-        self.image_label.bind(
-            "<B1-Motion>", self.on_mouse_drag
-        )  # Left click drag / Glisser-déposer avec le clic gauche
-        self.image_label.bind(
-            "<ButtonRelease-1>", self.on_mouse_up
-        )  # Left click release / Relâchement du clic gauche
-        self.image_label.bind(
-            "<Motion>", self.on_mouse_move
-        )  # Mouse movement / Mouvement de la souris
-        self.image_label.bind(
-            "<MouseWheel>", self.on_mouse_wheel
-        )  # Mouse wheel for Windows/macOS / Molette de la souris pour Windows/macOS
-        self.image_label.bind(
-            "<Button-4>", self.on_mouse_wheel
-        )  # Mouse wheel up for Linux / Molette de la souris vers le haut pour Linux
-        self.image_label.bind(
-            "<Button-5>", self.on_mouse_wheel
-        )  # Mouse wheel down for Linux / Molette de la souris vers le bas pour Linux
-        self.image_label.bind(
-            "<Button-2>", self.on_pan_start
-        )  # Middle mouse button for pan start / Bouton central de la souris pour le début du panoramique
-        self.image_label.bind(
-            "<B2-Motion>", self.on_pan_move
-        )  # Middle mouse button drag for pan / Glisser-déposer avec le bouton central de la souris pour le panoramique
-        self.image_label.bind(
-            "<ButtonRelease-2>", self.on_pan_end
-        )  # Middle mouse button release for pan end / Relâchement du bouton central de la souris pour la fin du panoramique
-
-        # Camera and PDF Controls frame
-        # Cadre des contrôles de la caméra et du PDF
-        self.controls_frame = ttk.Frame(self.video_frame)
-        self.controls_frame.grid(row=1, column=0, pady=5)
-
-        # Camera selection UI
-        # Interface utilisateur de sélection de la caméra
-        self.camera_selection_frame = ttk.Frame(self.controls_frame)
-        self.camera_selection_frame.pack(side=tk.LEFT, padx=10)
-        ttk.Label(self.camera_selection_frame, text="Sélectionner Webcam:").pack(
-            side=tk.LEFT, padx=5
-        )
-        self.camera_var = tk.StringVar(
-            self
-        )  # Variable to hold selected camera name / Variable pour contenir le nom de la caméra sélectionnée
-        self.camera_options = []  # List to store available camera options / Liste pour stocker les options de caméra disponibles
-        self.camera_menu_placeholder = ttk.Label(
-            self.camera_selection_frame, text="Recherche de caméras en cours..."
-        )
-        self.camera_menu_placeholder.pack(side=tk.LEFT)
-
-        # PDF navigation UI (initially hidden)
-        # Interface utilisateur de navigation PDF (initialement masquée)
-        self.pdf_navigation_frame = ttk.Frame(self.controls_frame)
-        self.pdf_navigation_frame.pack(side=tk.LEFT, padx=10)
-        self.prev_page_button = ttk.Button(
-            self.pdf_navigation_frame,
-            text="<",
-            command=self.prev_pdf_page,
-            width=3,
-        )
-        self.page_label = ttk.Label(self.pdf_navigation_frame, text="")
-        self.next_page_button = ttk.Button(
-            self.pdf_navigation_frame,
-            text=">",
-            command=self.next_pdf_page,
-            width=3,
-        )
-
-        # Start a separate thread to initialize camera (prevents UI freeze)
-        # Démarre un fil séparé pour initialiser la caméra (empêche le gel de l'interface utilisateur)
-        self.camera_population_thread = threading.Thread(
-            target=self._initialize_camera, daemon=True
-        )
-        self.camera_population_thread.start()
-
-        # Right Panel (Action Buttons) setup
-        # Configuration du panneau droit (Boutons d'action)
-        self.right_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
-        self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
-        self.right_panel.grid_propagate(
-            False
-        )  # Prevent frame from resizing / Empêche le cadre de se redimensionner
-
-        # Create and pack action buttons with tooltips
-        # Crée et emballe les boutons d'action avec des info-bulles
-        open_file_button = ttk.Button(
-            self.right_panel,
-            text="Ouvrir Fichier",
-            image=self.icons.get("open_file"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.open_file,
-        )
-        open_file_button.pack(fill=tk.X, pady=2)
-        Tooltip(open_file_button, "Ouvre un fichier image ou PDF (Ctrl+O)")
-        close_file_button = ttk.Button(
-            self.right_panel,
-            text="Fermer Fichier",
-            image=self.icons.get("close_file"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.close_file,
-        )
-        close_file_button.pack(fill=tk.X, pady=2)
-        Tooltip(close_file_button, "Ferme le fichier et réactive la webcam")
-
-        save_button = ttk.Button(
-            self.right_panel,
-            text="Sauvegarder",
-            image=self.icons.get("save"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.save_image,
-        )
-        save_button.pack(fill=tk.X, pady=2)
-        Tooltip(save_button, "Sauvegarde l'image actuelle (Ctrl+Shift+S)")
-        clear_button = ttk.Button(
-            self.right_panel,
-            text="Effacer Tout",
-            image=self.icons.get("clear"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.clear_all_annotations,
-        )
-        clear_button.pack(fill=tk.X, pady=2)
-        Tooltip(clear_button, "Efface toutes les annotations (Ctrl+E)")
-        undo_button = ttk.Button(
-            self.right_panel,
-            text="Annuler (Undo)",
-            image=self.icons.get("undo"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.undo_last_annotation,
-        )
-        undo_button.pack(fill=tk.X, pady=2)
-        Tooltip(undo_button, "Annule la dernière action (Ctrl+Z)")
-        redo_button = ttk.Button(
-            self.right_panel,
-            text="Rétablir (Redo)",
-            image=self.icons.get("redo"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.redo_last_annotation,
-        )
-        redo_button.pack(fill=tk.X, pady=2)
-        Tooltip(redo_button, "Rétablit la dernière action annulée (Ctrl+Y)")
-        delete_button = ttk.Button(
-            self.right_panel,
-            text="Supprimer",
-            image=self.icons.get("delete"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.delete_selected_annotation,
-        )
-        delete_button.pack(fill=tk.X, pady=2)
-        Tooltip(delete_button, "Supprime l'annotation sélectionnée (Suppr)")
-        settings_button = ttk.Button(
-            self.right_panel,
-            text="Paramètres",
-            image=self.icons.get("settings"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.open_settings_dialog,
-        )
-        settings_button.pack(fill=tk.X, pady=2)
-        Tooltip(settings_button, "Ouvre les paramètres de la caméra (Ctrl+P)")
-
-        help_button = ttk.Button(
-            self.right_panel,
-            text="Aide",
-            image=self.icons.get("help"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.show_help,
-        )
-        help_button.pack(fill=tk.X, pady=2)
-        Tooltip(help_button, "Ouvre le manuel d'utilisation (Ctrl+?)")
-
-        # Fullscreen and minimize panels buttons
-        fullscreen_button = ttk.Button(
-            self.right_panel,
-            text="Plein écran",
-            image=self.icons.get("fullscreen"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.toggle_fullscreen,
-        )
-        fullscreen_button.pack(fill=tk.X, pady=2)
-        Tooltip(fullscreen_button, "Active/désactive le mode plein écran (F11)")
-
-        ttk.Separator(self.right_panel, orient="horizontal").pack(
-            fill="x", pady=5, padx=5
-        )
-
-        self.logo_photo = self.icon_loader.load_logo(max_width=140)
-        theme = self.theme_manager.get_current_theme()
-        logo_label = ttk.Label(
-            self.right_panel,
-            image=self.logo_photo,
-            background=theme.get("panel_background", "#111827"),
-        )
-        logo_label.pack(side=tk.BOTTOM, pady=10)
-
-        # Bind Delete key for deleting selected annotations
-        # Lie la touche Suppr pour supprimer les annotations sélectionnées
-        self.bind("<Delete>", self.delete_selected_annotation)
+        # Common UI setup (keyboard shortcuts, update loop, etc.)
+        # Configuration UI commune (raccourcis clavier, boucle de mise à jour, etc.)
 
         # Keyboard Shortcuts for various actions and tools
         # Raccourcis clavier pour diverses actions et outils
@@ -773,6 +335,488 @@ class VisioDoc3(tk.Tk):
         if pyi_splash and pyi_splash.is_alive():
             if pyi_splash:
                 pyi_splash.close()
+
+    def _build_hybrid_layout(self):
+        """Build the hybrid top toolbar + compact sidebar layout."""
+        theme = self.theme_manager.get_current_theme()
+
+        # Configure grid for hybrid layout (2 rows: toolbar + content)
+        self.main_frame.grid_columnconfigure(0, weight=0)
+        self.main_frame.grid_columnconfigure(1, weight=1)
+        self.main_frame.grid_rowconfigure(0, weight=0)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+
+        # Top Toolbar
+        self.top_toolbar = TopToolbar(self.main_frame, self)
+        self.top_toolbar.grid(row=0, column=0, columnspan=2, sticky="ew")
+
+        # Compact Sidebar (48px wide)
+        commands = {
+            "set_tool_freedraw": lambda: self.set_tool("freedraw"),
+            "set_tool_rectangle": lambda: self.set_tool("rectangle"),
+            "set_tool_circle": lambda: self.set_tool("circle"),
+            "set_tool_line": lambda: self.set_tool("line"),
+            "set_tool_text": lambda: self.set_tool("text"),
+            "set_tool_blur": lambda: self.set_tool("blur"),
+            "set_tool_arrow": lambda: self.set_tool("arrow"),
+            "set_tool_highlight": lambda: self.set_tool("highlight"),
+            "set_tool_selection": lambda: self.set_tool("selection"),
+            "undo_last_annotation": self.undo_last_annotation,
+            "redo_last_annotation": self.redo_last_annotation,
+            "save_image": self.save_image,
+            "clear_all_annotations": self.clear_all_annotations,
+        }
+        self.compact_sidebar = CompactSidebar(
+            self.main_frame, self.icons, commands, app=self, style="Modern.TFrame"
+        )
+        self.compact_sidebar.grid(row=1, column=0, sticky="ns", padx=5, pady=5)
+
+        # Video Display Area
+        self._setup_video_display()
+
+    def _build_classic_layout(self):
+        """Build the classic three-panel layout for backward compatibility."""
+        theme = self.theme_manager.get_current_theme()
+
+        # Configure grid for classic layout
+        self.main_frame.grid_columnconfigure(0, weight=0)
+        self.main_frame.grid_columnconfigure(1, weight=1)
+        self.main_frame.grid_columnconfigure(2, weight=0)
+        self.main_frame.grid_rowconfigure(0, weight=1)
+
+        # Left Panel (Annotation Tools)
+        self.left_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
+        self.left_panel.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
+        self.left_panel.grid_propagate(False)
+
+        # Create annotation tool buttons
+        self._create_tool_buttons()
+
+        # Video Display Area
+        self._setup_video_display()
+
+        # Right Panel (Action Buttons)
+        self._create_right_panel()
+
+    def _setup_video_display(self):
+        """Setup the video display area, controls, and event bindings."""
+        self.video_frame = ttk.Frame(self.main_frame)
+        if self.use_hybrid_layout:
+            self.video_frame.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+        else:
+            self.video_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.video_frame.grid_rowconfigure(0, weight=1)
+        self.video_frame.grid_columnconfigure(0, weight=1)
+
+        self.image_label = ttk.Label(self.video_frame)
+        self.image_label.grid(row=0, column=0, sticky="nsew")
+
+        # Fullscreen exit button
+        self.exit_fullscreen_button = ttk.Button(
+            self.video_frame,
+            text="✕",
+            style="Modern.TButton",
+            command=self.exit_fullscreen,
+        )
+        self.exit_fullscreen_button.place(relx=0.98, rely=0.02, anchor="ne")
+        self.exit_fullscreen_button.lower()
+
+        # Placeholder image
+        self.placeholder_image = Image.new(
+            "RGB",
+            (self.current_resolution[0], self.current_resolution[1]),
+            (50, 50, 50),
+        )
+        draw = ImageDraw.Draw(self.placeholder_image)
+        text = "Chargement de la caméra..."
+        text_color = (200, 200, 200)
+        try:
+            font = get_system_font(30)
+        except IOError:
+            font = ImageFont.load_default()
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        text_x = (self.current_resolution[0] - text_width) // 2
+        text_y = (self.current_resolution[1] - text_height) // 2
+        draw.text((text_x, text_y), text, font=font, fill=text_color)
+        self.current_photo = ImageTk.PhotoImage(self.placeholder_image)
+        self.image_label.config(image=self.current_photo)
+
+        # Mouse event bindings
+        self._bind_mouse_events()
+
+        # Controls frame
+        self._setup_controls()
+
+        # Start camera thread
+        self.camera_population_thread = threading.Thread(
+            target=self._initialize_camera, daemon=True
+        )
+        self.camera_population_thread.start()
+
+    def _create_tool_buttons(self):
+        """Create annotation tool buttons for classic layout."""
+        # Tool buttons
+        ttk.Button(
+            self.left_panel,
+            text="Dessin Main Levée",
+            image=self.icons.get("freedraw"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("freedraw"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1],
+            "Active l'outil de dessin à main levée (Ctrl+F)",
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Rectangle",
+            image=self.icons.get("rectangle"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("rectangle"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1], "Active l'outil rectangle (Ctrl+R)"
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Cercle",
+            image=self.icons.get("circle"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("circle"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil cercle (Ctrl+C)")
+
+        ttk.Button(
+            self.left_panel,
+            text="Ligne",
+            image=self.icons.get("line"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("line"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil ligne (Ctrl+L)")
+
+        ttk.Button(
+            self.left_panel,
+            text="Ajouter Texte",
+            image=self.icons.get("text"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("text"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil texte (Ctrl+T)")
+
+        ttk.Button(
+            self.left_panel,
+            text="Zone de Flou",
+            image=self.icons.get("blur"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("blur"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de flou (Ctrl+B)")
+
+        ttk.Button(
+            self.left_panel,
+            text="Flèche",
+            image=self.icons.get("arrow"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("arrow"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil flèche (Ctrl+A)")
+
+        ttk.Button(
+            self.left_panel,
+            text="Surlignage",
+            image=self.icons.get("highlight"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("highlight"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1], "Active l'outil surlignage (Ctrl+H)"
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Sélection",
+            image=self.icons.get("selection"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=lambda: self.set_tool("selection"),
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1], "Active l'outil de sélection (Ctrl+S)"
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Choisir Couleur",
+            image=self.icons.get("color_picker"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.choose_annotation_color,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1],
+            "Ouvre la palette de couleurs (Ctrl+K)",
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Choisir Taille",
+            image=self.icons.get("size_picker"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.choose_annotation_size,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1],
+            "Ouvre le sélecteur de taille (Ctrl+I)",
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Flip Horizontal",
+            image=self.icons.get("flip_horizontal"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.flip_horizontal,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1],
+            "Retournement horizontal de l'image (Ctrl+J)",
+        )
+
+        ttk.Button(
+            self.left_panel,
+            text="Flip Vertical",
+            image=self.icons.get("flip_vertical"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.flip_vertical,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.left_panel.winfo_children()[-1],
+            "Retournement vertical de l'image (Ctrl+U)",
+        )
+
+        # Zoom controls
+        ttk.Separator(self.left_panel, orient="horizontal").pack(
+            fill="x", pady=10, padx=5
+        )
+        zoom_frame = ttk.Frame(self.left_panel, style="Modern.TFrame")
+        zoom_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(zoom_frame, text="Zoom:", style="White.TLabel").pack(
+            side=tk.LEFT, padx=5
+        )
+        zoom_in_btn = ttk.Button(
+            zoom_frame, text="+", style="Modern.TButton", command=self.zoom_in, width=3
+        )
+        zoom_in_btn.pack(side=tk.LEFT)
+        Tooltip(zoom_in_btn, "Zoom avant (Ctrl++)")
+        zoom_out_btn = ttk.Button(
+            zoom_frame, text="-", style="Modern.TButton", command=self.zoom_out, width=3
+        )
+        zoom_out_btn.pack(side=tk.LEFT)
+        Tooltip(zoom_out_btn, "Zoom arrière (Ctrl+-)")
+
+    def _create_right_panel(self):
+        """Create the right panel with action buttons for classic layout."""
+        self.right_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
+        self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
+        self.right_panel.grid_propagate(False)
+
+        ttk.Button(
+            self.right_panel,
+            text="Ouvrir Fichier",
+            image=self.icons.get("open_file"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.open_file,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Ouvre un fichier image ou PDF (Ctrl+O)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Fermer Fichier",
+            image=self.icons.get("close_file"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.close_file,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Ferme le fichier et réactive la webcam",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Sauvegarder",
+            image=self.icons.get("save"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.save_image,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Sauvegarde l'image actuelle (Ctrl+Shift+S)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Effacer Tout",
+            image=self.icons.get("clear"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.clear_all_annotations,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Efface toutes les annotations (Ctrl+E)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Annuler (Undo)",
+            image=self.icons.get("undo"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.undo_last_annotation,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1], "Annule la dernière action (Ctrl+Z)"
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Rétablir (Redo)",
+            image=self.icons.get("redo"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.redo_last_annotation,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Rétablit la dernière action annulée (Ctrl+Y)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Supprimer",
+            image=self.icons.get("delete"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.delete_selected_annotation,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Supprime l'annotation sélectionnée (Suppr)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Paramètres",
+            image=self.icons.get("settings"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.open_settings_dialog,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Ouvre les paramètres de la caméra (Ctrl+P)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Aide",
+            image=self.icons.get("help"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.show_help,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Ouvre le manuel d'utilisation (Ctrl+?)",
+        )
+
+        ttk.Button(
+            self.right_panel,
+            text="Plein écran",
+            image=self.icons.get("fullscreen"),
+            compound=tk.LEFT,
+            style="Modern.TButton",
+            command=self.toggle_fullscreen,
+        ).pack(fill=tk.X, pady=2)
+        Tooltip(
+            self.right_panel.winfo_children()[-1],
+            "Active/désactive le mode plein écran (F11)",
+        )
+
+        ttk.Separator(self.right_panel, orient="horizontal").pack(
+            fill="x", pady=5, padx=5
+        )
+
+        self.logo_photo = self.icon_loader.load_logo(max_width=140)
+        logo_label = ttk.Label(
+            self.right_panel,
+            image=self.logo_photo,
+            background=self.theme_manager.get_current_theme().get(
+                "panel_background", "#111827"
+            ),
+        )
+        logo_label.pack(side=tk.BOTTOM, pady=10)
+
+    def _bind_mouse_events(self):
+        """Bind mouse events for drawing, selection, zoom, and pan."""
+        self.image_label.bind("<Button-1>", self.on_mouse_down)
+        self.image_label.bind("<B1-Motion>", self.on_mouse_drag)
+        self.image_label.bind("<ButtonRelease-1>", self.on_mouse_up)
+        self.image_label.bind("<Motion>", self.on_mouse_move)
+        self.image_label.bind("<MouseWheel>", self.on_mouse_wheel)
+        self.image_label.bind("<Button-4>", self.on_mouse_wheel)
+        self.image_label.bind("<Button-5>", self.on_mouse_wheel)
+        self.image_label.bind("<Button-2>", self.on_pan_start)
+        self.image_label.bind("<B2-Motion>", self.on_pan_move)
+        self.image_label.bind("<ButtonRelease-2>", self.on_pan_end)
+
+    def _setup_controls(self):
+        """Setup camera/PDF controls."""
+        self.controls_frame = ttk.Frame(self.video_frame)
+        self.controls_frame.grid(row=1, column=0, pady=5)
+
+        self.camera_selection_frame = ttk.Frame(self.controls_frame)
+        self.camera_selection_frame.pack(side=tk.LEFT, padx=10)
+        ttk.Label(self.camera_selection_frame, text="Sélectionner Webcam:").pack(
+            side=tk.LEFT, padx=5
+        )
+        self.camera_var = tk.StringVar(self)
+        self.camera_options = []
+        self.camera_menu_placeholder = ttk.Label(
+            self.camera_selection_frame, text="Recherche de caméras en cours..."
+        )
+        self.camera_menu_placeholder.pack(side=tk.LEFT)
+
+        self.pdf_navigation_frame = ttk.Frame(self.controls_frame)
+        self.pdf_navigation_frame.pack(side=tk.LEFT, padx=10)
+        self.prev_page_button = ttk.Button(
+            self.pdf_navigation_frame, text="<", command=self.prev_pdf_page, width=3
+        )
+        self.page_label = ttk.Label(self.pdf_navigation_frame, text="")
+        self.next_page_button = ttk.Button(
+            self.pdf_navigation_frame, text=">", command=self.next_pdf_page, width=3
+        )
 
     def _load_icons(self):
         """
@@ -2382,14 +2426,26 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         self.is_fullscreen = not self.is_fullscreen
         if self.is_fullscreen:
             # Hide panels and expand video frame to fill available space
-            self.left_panel.grid_remove()
-            self.right_panel.grid_remove()
+            if hasattr(self, "compact_sidebar"):
+                self.compact_sidebar.grid_remove()
+            if hasattr(self, "top_toolbar"):
+                self.top_toolbar.grid_remove()
+            if hasattr(self, "left_panel"):
+                self.left_panel.grid_remove()
+            if hasattr(self, "right_panel"):
+                self.right_panel.grid_remove()
             self.main_frame.grid_columnconfigure(1, weight=1)
             self.exit_fullscreen_button.lift()  # Show exit button
         else:
             # Restore panels
-            self.left_panel.grid()
-            self.right_panel.grid()
+            if hasattr(self, "compact_sidebar"):
+                self.compact_sidebar.grid()
+            if hasattr(self, "top_toolbar"):
+                self.top_toolbar.grid()
+            if hasattr(self, "left_panel"):
+                self.left_panel.grid()
+            if hasattr(self, "right_panel"):
+                self.right_panel.grid()
             self.exit_fullscreen_button.lower()  # Hide exit button
 
     def exit_fullscreen(self):
@@ -2399,8 +2455,14 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         """
         if self.is_fullscreen:
             self.is_fullscreen = False
-            self.left_panel.grid()
-            self.right_panel.grid()
+            if hasattr(self, "compact_sidebar"):
+                self.compact_sidebar.grid()
+            if hasattr(self, "top_toolbar"):
+                self.top_toolbar.grid()
+            if hasattr(self, "left_panel"):
+                self.left_panel.grid()
+            if hasattr(self, "right_panel"):
+                self.right_panel.grid()
             self.exit_fullscreen_button.lower()  # Hide exit button
 
     def open_file(self):
