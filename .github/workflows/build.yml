@@ -1,12 +1,10 @@
 name: Build Windows Executable
-
+ 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  release:
-    types: [ published ]
+   push:
+     branches: [ main ]
+   pull_request:
+     branches: [ main ]
 
 jobs:
   build-windows:
@@ -33,35 +31,12 @@ jobs:
         name: VisioDoc3-windows
         path: dist/VisioDoc3.exe
 
-    - name: Create/Get Release
-      id: create_release
-      shell: pwsh
-      run: |
-        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
-        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Headers $headers
-        $release = $releases | Where-Object { $_.tag_name -eq "exe" }
-        if (-not $release) {
-          $body = @{ tag_name = "exe"; name = "Windows Executable"; body = "Auto-generated release"; draft = $false; prerelease = $false } | ConvertTo-Json
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Method Post -Headers $headers -Body $body -ContentType "application/json"
-        }
-        Add-Content -Path $env:GITHUB_OUTPUT -Value "release_id=$($release.id)"
-
-    - name: Delete old release asset
-      if: steps.create_release.outputs.release_id != ''
-      shell: pwsh
-      run: |
-        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
-        $assets = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets" -Headers $headers
-        $asset = $assets | Where-Object { $_.name -eq "VisioDoc3.exe" }
-        if ($asset) {
-          Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/assets/$($asset.id)" -Method Delete -Headers $headers
-        }
-
-    - name: Upload release asset
-      shell: pwsh
-      run: |
-        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "Content-Type" = "application/octet-stream" }
-        $filePath = "dist/VisioDoc3.exe"
-        $uploadUrl = "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets?name=VisioDoc3.exe"
-        $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
-        Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $headers -Body $fileBytes
+    - name: Upload release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: exe
+        name: Windows Executable
+        body: Auto-generated release
+        files: dist/VisioDoc3.exe
+        fail-on-unmatched-files: false
+        delete: true
