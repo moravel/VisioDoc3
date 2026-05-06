@@ -13,22 +13,55 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller pillow opencv-python numpy pymupdf
-        
+
     - name: Build executable
       run: pyinstaller VisioDoc3.spec --clean --noconfirm
-      
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: VisioDoc3-windows
         path: dist/VisioDoc3.exe
+
+    - name: Create/Get Release
+      id: create_release
+      shell: pwsh
+      run: |
+        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
+        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Headers $headers
+        $release = $releases | Where-Object { $_.tag_name -eq "exe" }
+        if (-not $release) {
+          $body = @{ tag_name = "exe"; name = "Windows Executable"; body = "Auto-generated release"; draft = $false; prerelease = $false } | ConvertTo-Json
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Method Post -Headers $headers -Body $body -ContentType "application/json"
+        }
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "release_id=$($release.id)"
+
+    - name: Delete old release asset
+      if: steps.create_release.outputs.release_id != ''
+      shell: pwsh
+      run: |
+        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
+        $assets = Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets" -Headers $headers
+        $asset = $assets | Where-Object { $_.name -eq "VisioDoc3.exe" }
+        if ($asset) {
+          Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases/assets/$($asset.id)" -Method Delete -Headers $headers
+        }
+
+    - name: Upload release asset
+      shell: pwsh
+      run: |
+        $headers = @{ "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"; "Content-Type" = "application/octet-stream" }
+        $filePath = "dist/VisioDoc3.exe"
+        $uploadUrl = "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.release_id }}/assets?name=VisioDoc3.exe"
+        $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
+        Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $headers -Body $fileBytes
