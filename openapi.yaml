@@ -6,7 +6,7 @@ info:
     a Python desktop application for document viewing and annotation.
     This specification models the application's classes, methods, and data flows
     as REST-like endpoints for documentation purposes.
-  version: 3.0.0
+  version: 1.0.0
   contact:
     name: VisioDoc3 Development Team
   license:
@@ -1018,6 +1018,123 @@ paths:
               schema:
                 $ref: '#/components/schemas/HistoryStacks'
 
+  /ui/toolbar:
+    get:
+      tags: [UIComponents]
+      summary: Get top toolbar status
+      description: Retrieve current top toolbar configuration and status
+      operationId: getTopToolbar
+      responses:
+        '200':
+          description: Top toolbar status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopToolbarStatus'
+    put:
+      tags: [UIComponents]
+      summary: Update top toolbar visibility
+      description: Show or hide the top toolbar
+      operationId: setTopToolbarVisibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visible:
+                  type: boolean
+      responses:
+        '200':
+          description: Toolbar visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopToolbarStatus'
+
+  /ui/toolbar/status:
+    post:
+      tags: [UIComponents]
+      summary: Update toolbar status text
+      description: Update the status message displayed in the top toolbar
+      operationId: updateToolbarStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Status text updated
+
+  /ui/sidebar:
+    get:
+      tags: [UIComponents]
+      summary: Get compact sidebar status
+      description: Retrieve current compact sidebar configuration and status
+      operationId: getCompactSidebar
+      responses:
+        '200':
+          description: Compact sidebar status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompactSidebarStatus'
+    put:
+      tags: [UIComponents]
+      summary: Update compact sidebar visibility
+      description: Show or hide the compact sidebar
+      operationId: setCompactSidebarVisibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visible:
+                  type: boolean
+      responses:
+        '200':
+          description: Sidebar visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompactSidebarStatus'
+
+  /ui/layout:
+    get:
+      tags: [UIComponents]
+      summary: Get current layout configuration
+      description: Retrieve current UI layout configuration including hybrid mode status
+      operationId: getLayout
+      responses:
+        '200':
+          description: Layout configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolbarLayout'
+    put:
+      tags: [UIComponents]
+      summary: Set layout configuration
+      description: Switch between hybrid and classic layout modes
+      operationId: setLayout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolbarLayout'
+      responses:
+        '200':
+          description: Layout configuration updated
+
 components:
   schemas:
     Application:
@@ -1038,6 +1155,11 @@ components:
           $ref: '#/components/schemas/WindowGeometry'
         display:
           $ref: '#/components/schemas/DisplayStatus'
+        use_hybrid_layout:
+          type: boolean
+          description: Whether hybrid toolbar + compact sidebar layout is enabled
+        ui_components:
+          $ref: '#/components/schemas/UIComponentsState'
 
     ApplicationState:
       type: object
@@ -1641,3 +1763,58 @@ components:
           type: integer
         redo_count:
           type: integer
+
+    UIComponentsState:
+      type: object
+      properties:
+        top_toolbar_visible:
+          type: boolean
+          description: Whether top toolbar is visible
+        compact_sidebar_visible:
+          type: boolean
+          description: Whether compact sidebar is visible
+        top_toolbar_status:
+          $ref: '#/components/schemas/TopToolbarStatus'
+        compact_sidebar_status:
+          $ref: '#/components/schemas/CompactSidebarStatus'
+
+    TopToolbarStatus:
+      type: object
+      properties:
+        menus:
+          type: array
+          items:
+            type: string
+          description: Available menu names (File, Annotations, View)
+        status_text:
+          type: string
+          description: Current status message
+
+    CompactSidebarStatus:
+      type: object
+      properties:
+        width:
+          type: integer
+          description: Sidebar width in pixels (typically 48)
+        button_count:
+          type: integer
+          description: Number of buttons in sidebar
+        tools:
+          type: array
+          items:
+            type: string
+          description: Available tool keys
+
+    ToolbarLayout:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [hybrid, classic]
+          description: Layout type
+        toolbar_height:
+          type: integer
+          description: Height of top toolbar in pixels
+        sidebar_width:
+          type: integer
+          description: Width of compact sidebar in pixels
