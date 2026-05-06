@@ -2,15 +2,17 @@
 
 import tkinter as tk
 from tkinter import ttk
-from typing import Callable, Optional
+from typing import Callable, Optional, List, Tuple
 
 
 class TopToolbar(ttk.Frame):
-    """Top toolbar with File, Annotate, View, Export menus."""
+    """Top toolbar with File, Annotate, View, Export menus and camera selection."""
 
     def __init__(self, parent, app, **kwargs):
         super().__init__(parent, **kwargs)
         self.app = app
+        self.camera_var = tk.StringVar(self)
+        self.camera_menu = None
         self._build_toolbar()
 
     def _build_toolbar(self):
@@ -31,6 +33,12 @@ class TopToolbar(ttk.Frame):
         # View menu
         view_btn = self._create_menu_button("Affichage", self._create_view_menu)
         view_btn.pack(side=tk.LEFT, padx=2)
+
+        # Camera selection (will be populated when cameras are detected)
+        self.camera_btn = ttk.Menubutton(self, text="Webcam")
+        self.camera_menu = tk.Menu(self.camera_btn, tearoff=0)
+        self.camera_btn["menu"] = self.camera_menu
+        self.camera_btn.pack(side=tk.LEFT, padx=2)
 
         # Spacer
         ttk.Label(self).pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -130,6 +138,22 @@ class TopToolbar(ttk.Frame):
             label="Paramètres (Ctrl+P)", command=self.app.open_settings_dialog
         )
         return menu
+
+    def update_cameras(self, camera_options: List[Tuple[str, int]]):
+        """Update camera menu with available cameras."""
+        self.camera_menu.delete(0, tk.END)
+        
+        if camera_options:
+            camera_options = sorted(camera_options, key=lambda x: x[1])
+            for name, index in camera_options:
+                self.camera_menu.add_command(
+                    label=name,
+                    command=lambda i=index: self.app.select_camera_by_index(i),
+                )
+            self.camera_btn.config(text="Webcam ▼")
+        else:
+            self.camera_menu.add_command(label="Aucune webcam trouvée", state="disabled")
+            self.camera_btn.config(text="Webcam ✕")
 
     def update_status(self, text: str):
         """Update status text."""

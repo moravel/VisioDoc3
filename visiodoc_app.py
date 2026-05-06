@@ -1333,6 +1333,20 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
                 )  # Save the newly selected camera to config / Sauvegarde la caméra nouvellement sélectionnée dans la configuration
                 break
 
+    def select_camera_by_index(self, camera_index):
+        """
+        Select camera by index directly (used by TopToolbar).
+        Sélectionne la caméra par index directement (utilisé par TopToolbar).
+
+        Args:
+            camera_index (int): The index of the camera to select.
+                                L'index de la caméra à sélectionner.
+        """
+        self.start_video_stream(
+            camera_index, self.current_resolution[0], self.current_resolution[1]
+        )
+        self._save_camera_config(camera_index)
+
     def update_display(self):
         """
         Periodically updates the image displayed on the image_label.
