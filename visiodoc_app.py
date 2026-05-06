@@ -234,6 +234,7 @@ class VisioDoc3(tk.Tk):
                 "flip_horizontal",
                 "flip_vertical",
                 "fullscreen",
+                "webcam",
             ]
         )
 
@@ -1126,57 +1127,75 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
             initial_camera_index (int, optional): The index of the camera to pre-select.
                                                    L'index de la caméra à présélectionner.
         """
-        self.camera_menu_placeholder.pack_forget()  # Remove the "Searching for cameras..." placeholder / Supprime l'espace réservé "Recherche de caméras en cours..."
+        if hasattr(self, "top_toolbar") and self.top_toolbar is not None:
+            self.top_toolbar.update_cameras(self.camera_options)
 
-        if (
-            self.camera_options
-        ):  # If cameras were found / Si des caméras ont été trouvées
-            # Sort cameras by index for consistent ordering in the menu
-            # Trie les caméras par index pour un ordre cohérent dans le menu
-            self.camera_options.sort(key=lambda x: x[1])
+        # Only handle placeholder/camera menu for classic layout
+        if not self.use_hybrid_layout:
+            self.camera_menu_placeholder.pack_forget()  # Remove the "Searching for cameras..." placeholder / Supprime l'espace réservé "Recherche de caméras en cours..."
 
-            # Set the initial selected value in the dropdown
-            # Définit la valeur initiale sélectionnée dans le menu déroulant
-            if initial_camera_index is not None and any(
-                opt[1] == initial_camera_index for opt in self.camera_options
-            ):
-                self.camera_var.set(f"Webcam {initial_camera_index}")
-                selected_index = initial_camera_index
+            if (
+                self.camera_options
+            ):  # If cameras were found / Si des caméras ont été trouvées
+                # Sort cameras by index for consistent ordering in the menu
+                # Trie les caméras par index pour un ordre cohérent dans le menu
+                self.camera_options.sort(key=lambda x: x[1])
+
+                # Set the initial selected value in the dropdown
+                # Définit la valeur initiale sélectionnée dans le menu déroulant
+                if initial_camera_index is not None and any(
+                    opt[1] == initial_camera_index for opt in self.camera_options
+                ):
+                    self.camera_var.set(f"Webcam {initial_camera_index}")
+                    selected_index = initial_camera_index
+                else:
+                    self.camera_var.set(
+                        self.camera_options[0][0]
+                    )  # Default to the first found camera / Par défaut à la première caméra trouvée
+                    selected_index = self.camera_options[0][1]
+
+                # Create the OptionMenu for camera selection
+                # Crée l'OptionMenu pour la sélection de la caméra
+                self.camera_menu = ttk.OptionMenu(
+                    self.camera_selection_frame,
+                    self.camera_var,
+                    self.camera_var.get(),
+                    *[opt[0] for opt in self.camera_options],
+                    style="White.TMenubutton",
+                    command=self.select_camera,
+                )
+                self.camera_menu.pack(side=tk.LEFT)
+                Tooltip(self.camera_menu, "Sélectionne la webcam à utiliser")
+
+                # Start video stream with the selected camera
+                # Démarre le flux vidéo avec la caméra sélectionnée
+                self.start_video_stream(
+                    selected_index,
+                    self.current_resolution[0],
+                    self.current_resolution[1],
+                )
+                self._save_camera_config(
+                    selected_index
+                )  # Save the successfully opened camera to config / Sauvegarde la caméra ouverte avec succès dans la configuration
             else:
-                self.camera_var.set(
-                    self.camera_options[0][0]
-                )  # Default to the first found camera / Par défaut à la première caméra trouvée
-                selected_index = self.camera_options[0][1]
-
-            # Create the OptionMenu for camera selection
-            # Crée l'OptionMenu pour la sélection de la caméra
-            self.camera_menu = ttk.OptionMenu(
-                self.camera_selection_frame,
-                self.camera_var,
-                self.camera_var.get(),
-                *[opt[0] for opt in self.camera_options],
-                style="White.TMenubutton",
-                command=self.select_camera,
-            )
-            self.camera_menu.pack(side=tk.LEFT)
-            Tooltip(self.camera_menu, "Sélectionne la webcam à utiliser")
-
-            # Start video stream with the selected camera
-            # Démarre le flux vidéo avec la caméra sélectionnée
-            self.start_video_stream(
-                selected_index, self.current_resolution[0], self.current_resolution[1]
-            )
-            self._save_camera_config(
-                selected_index
-            )  # Save the successfully opened camera to config / Sauvegarde la caméra ouverte avec succès dans la configuration
+                # Display a message if no cameras are found
+                # Affiche un message si aucune caméra n'est trouvée
+                ttk.Label(
+                    self.camera_selection_frame,
+                    text="Aucune webcam trouvée",
+                    style="White.TLabel",
+                ).pack(side=tk.LEFT)
         else:
-            # Display a message if no cameras are found
-            # Affiche un message si aucune caméra n'est trouvée
-            ttk.Label(
-                self.camera_selection_frame,
-                text="Aucune webcam trouvée",
-                style="White.TLabel",
-            ).pack(side=tk.LEFT)
+            # Hybrid layout: select first camera and start stream
+            if self.camera_options:
+                self.camera_options.sort(key=lambda x: x[1])
+                selected_index = self.camera_options[0][1]
+                self.start_video_stream(
+                    selected_index,
+                    self.current_resolution[0],
+                    self.current_resolution[1],
+                )
+                self._save_camera_config(selected_index)
 
     def _check_camera(self, index, results_list, initial_camera_found):
         """
