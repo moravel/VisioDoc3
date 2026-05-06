@@ -40,3 +40,5 @@ jobs:
         files: dist/VisioDoc3.exe
         fail-on-unmatched-files: false
         delete: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
