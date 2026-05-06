@@ -32,10 +32,6 @@ class TopToolbar(ttk.Frame):
         view_btn = self._create_menu_button("Affichage", self._create_view_menu)
         view_btn.pack(side=tk.LEFT, padx=2)
 
-        # Webcam menu
-        self.camera_btn = self._create_menu_button("Webcam", self._create_camera_menu)
-        self.camera_btn.pack(side=tk.LEFT, padx=2)
-
         # Spacer
         ttk.Label(self).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
@@ -134,30 +130,6 @@ class TopToolbar(ttk.Frame):
             label="Paramètres (Ctrl+P)", command=self.app.open_settings_dialog
         )
         return menu
-
-    def _create_camera_menu(self, parent):
-        """Create Webcam menu with camera selection."""
-        menu = tk.Menu(parent, tearoff=0)
-        self._camera_menu = menu
-        menu.add_command(label="Sélectionner Webcam")
-        menu.add_command(label="Recherche de caméras en cours...", state="disabled")
-        return menu
-
-    def update_cameras(self, cameras: list[tuple[str, int]]):
-        """Update the camera menu with the list of available cameras."""
-        if not hasattr(self, "_camera_menu") or self._camera_menu is None:
-            return
-        menu = self._camera_menu
-        menu.delete(0, tk.END)
-        menu.add_command(label="Sélectionner Webcam")
-        if cameras:
-            for camera_name, camera_index in cameras:
-                menu.add_command(
-                    label=camera_name,
-                    command=lambda name=camera_name: self.app.select_camera(name),
-                )
-        else:
-            menu.add_command(label="Recherche de caméras en cours...", state="disabled")
 
     def update_status(self, text: str):
         """Update status text."""

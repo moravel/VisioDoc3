@@ -366,14 +366,6 @@ class VisioDoc3(tk.Tk):
             "redo_last_annotation": self.redo_last_annotation,
             "save_image": self.save_image,
             "clear_all_annotations": self.clear_all_annotations,
-            "choose_color": self.choose_annotation_color,
-            "choose_size": self.choose_annotation_size,
-            "flip_horizontal": self.flip_horizontal,
-            "flip_vertical": self.flip_vertical,
-            "toggle_fullscreen": self.toggle_fullscreen,
-            "open_settings": self.open_settings_dialog,
-            "open_file": self.open_file,
-            "close_file": self.close_file,
         }
         self.compact_sidebar = CompactSidebar(
             self.main_frame, self.icons, commands, app=self, style="Modern.TFrame"
@@ -805,22 +797,17 @@ class VisioDoc3(tk.Tk):
         self.controls_frame = ttk.Frame(self.video_frame)
         self.controls_frame.grid(row=1, column=0, pady=5)
 
-        # Camera selection frame - only for classic layout (hybrid uses top toolbar menu)
-        if not self.use_hybrid_layout:
-            self.camera_selection_frame = ttk.Frame(self.controls_frame)
-            self.camera_selection_frame.pack(side=tk.LEFT, padx=10)
-            ttk.Label(self.camera_selection_frame, text="Sélectionner Webcam:").pack(
-                side=tk.LEFT, padx=5
-            )
-            self.camera_var = tk.StringVar(self)
-            self.camera_options = []
-            self.camera_menu_placeholder = ttk.Label(
-                self.camera_selection_frame, text="Recherche de caméras en cours..."
-            )
-            self.camera_menu_placeholder.pack(side=tk.LEFT)
-        else:
-            self.camera_var = tk.StringVar(self)
-            self.camera_options = []
+        self.camera_selection_frame = ttk.Frame(self.controls_frame)
+        self.camera_selection_frame.pack(side=tk.LEFT, padx=10)
+        ttk.Label(self.camera_selection_frame, text="Sélectionner Webcam:").pack(
+            side=tk.LEFT, padx=5
+        )
+        self.camera_var = tk.StringVar(self)
+        self.camera_options = []
+        self.camera_menu_placeholder = ttk.Label(
+            self.camera_selection_frame, text="Recherche de caméras en cours..."
+        )
+        self.camera_menu_placeholder.pack(side=tk.LEFT)
 
         self.pdf_navigation_frame = ttk.Frame(self.controls_frame)
         self.pdf_navigation_frame.pack(side=tk.LEFT, padx=10)

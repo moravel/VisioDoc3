@@ -42,13 +42,10 @@ class CompactSidebar(ttk.Frame):
         for tool_key, tool_label in tool_items:
             icon = self.icons.get(tool_key)
             if icon:
+                # Create a proper closure for the command
                 cmd = self.commands.get(f"set_tool_{tool_key}")
-                if cmd is None and self.app is not None:
-                    if hasattr(self.app, "set_tool"):
-                        app = self.app
-                        cmd = lambda t=tool_key: app.set_tool(t)
-                if cmd is None:
-                    cmd = lambda: None
+                if cmd is None and self.app and hasattr(self.app, "set_tool"):
+                    cmd = lambda t=tool_key: self.app.set_tool(t)
                 btn = ttk.Button(
                     self,
                     image=icon,
@@ -59,26 +56,6 @@ class CompactSidebar(ttk.Frame):
                 btn.pack(fill=tk.X, pady=1)
                 self._add_tooltip(btn, tool_label)
                 self.buttons[tool_key] = btn
-
-        # Color picker and size picker buttons
-        picker_items = [
-            ("color_picker", "Choisir Couleur", "choose_color"),
-            ("size_picker", "Choisir Taille", "choose_size"),
-        ]
-
-        for icon_key, label, method_name in picker_items:
-            icon = self.icons.get(icon_key)
-            if icon:
-                cmd = self.commands.get(method_name) or (lambda: None)
-                btn = ttk.Button(
-                    self,
-                    image=icon,
-                    style="Compact.TButton",
-                    command=cmd,
-                    width=48,
-                )
-                btn.pack(fill=tk.X, pady=1)
-                self._add_tooltip(btn, label)
 
         # Separator
         ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
@@ -94,62 +71,11 @@ class CompactSidebar(ttk.Frame):
         for icon_key, label, method_name in action_items:
             icon = self.icons.get(icon_key)
             if icon:
-                cmd = self.commands.get(method_name) or (lambda: None)
                 btn = ttk.Button(
                     self,
                     image=icon,
                     style="Compact.TButton",
-                    command=cmd,
-                    width=48,
-                )
-                btn.pack(fill=tk.X, pady=1)
-                self._add_tooltip(btn, label)
-
-        # Separator
-        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
-
-        # Display controls
-        display_items = [
-            ("flip_horizontal", "Retourner Horizontal", "flip_horizontal"),
-            ("flip_vertical", "Retourner Vertical", "flip_vertical"),
-            ("fullscreen", "Plein Écran", "toggle_fullscreen"),
-            ("settings", "Paramètres", "open_settings"),
-        ]
-
-        for icon_key, label, method_name in display_items:
-            icon = self.icons.get(icon_key)
-            if icon:
-                cmd = self.commands.get(method_name) or (lambda: None)
-                btn = ttk.Button(
-                    self,
-                    image=icon,
-                    style="Compact.TButton",
-                    command=cmd,
-                    width=48,
-                )
-                btn.pack(fill=tk.X, pady=1)
-                self._add_tooltip(btn, label)
-
-        # Separator
-        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
-
-        # File controls
-        file_items = [
-            ("open_file", "Ouvrir", "open_file"),
-            ("close_file", "Fermer", "close_file"),
-        ]
-
-        for icon_key, label, method_name in file_items:
-            icon = self.icons.get(icon_key)
-            if icon:
-                cmd = self.commands.get(method_name)
-                if cmd is None:
-                    cmd = lambda: None
-                btn = ttk.Button(
-                    self,
-                    image=icon,
-                    style="Compact.TButton",
-                    command=cmd,
+                    command=self.commands.get(method_name),
                     width=48,
                 )
                 btn.pack(fill=tk.X, pady=1)
