@@ -229,10 +229,10 @@ class VisioDoc3(tk.Tk):
                 "selection",
                 "delete",
                 "help",
-                "open_file",
-                "close_file",
-                "flip_horizontal",
-                "flip_vertical",
+              "open_file",
+              "close_file",
+              "flip_horizontal",
+              "flip_vertical",
                 "fullscreen",
                 "webcam",
             ]
@@ -366,6 +366,13 @@ class VisioDoc3(tk.Tk):
             "redo_last_annotation": self.redo_last_annotation,
             "save_image": self.save_image,
             "clear_all_annotations": self.clear_all_annotations,
+             "choose_annotation_color": self.choose_annotation_color,
+             "choose_annotation_size": self.choose_annotation_size,
+             "flip_horizontal": self.flip_horizontal,
+             "flip_vertical": self.flip_vertical,
+             "toggle_fullscreen": self.toggle_fullscreen,
+             "open_file": self.open_file,
+             "close_file": self.close_file,
         }
         self.compact_sidebar = CompactSidebar(
             self.main_frame, self.icons, commands, app=self, style="Modern.TFrame"

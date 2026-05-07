@@ -60,6 +60,73 @@ class CompactSidebar(ttk.Frame):
         # Separator
         ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
 
+        # Color and size pickers
+        color_items = [
+            ("color_picker", "Choisir Couleur", "choose_annotation_color"),
+            ("size_picker", "Choisir Taille", "choose_annotation_size"),
+        ]
+
+        for icon_key, label, method_name in color_items:
+            icon = self.icons.get(icon_key)
+            if icon:
+                btn = ttk.Button(
+                    self,
+                    image=icon,
+                    style="Compact.TButton",
+                    command=self.commands.get(method_name),
+                    width=48,
+                )
+                btn.pack(fill=tk.X, pady=1)
+                self._add_tooltip(btn, label)
+
+        # Separator
+        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
+
+        # Display functions
+        display_items = [
+            ("flip_horizontal", "Retourner Horizontal", "flip_horizontal"),
+            ("flip_vertical", "Retourner Vertical", "flip_vertical"),
+            ("fullscreen", "Plein Écran", "toggle_fullscreen"),
+        ]
+
+        for icon_key, label, method_name in display_items:
+            icon = self.icons.get(icon_key)
+            if icon:
+                btn = ttk.Button(
+                    self,
+                    image=icon,
+                    style="Compact.TButton",
+                    command=self.commands.get(method_name),
+                    width=48,
+                )
+                btn.pack(fill=tk.X, pady=1)
+                self._add_tooltip(btn, label)
+
+        # Separator
+        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
+
+        # File functions
+        file_items = [
+            ("open_file", "Ouvrir Fichier", "open_file"),
+            ("close_file", "Fermer Fichier", "close_file"),
+        ]
+
+        for icon_key, label, method_name in file_items:
+            icon = self.icons.get(icon_key)
+            if icon:
+                btn = ttk.Button(
+                    self,
+                    image=icon,
+                    style="Compact.TButton",
+                    command=self.commands.get(method_name),
+                    width=48,
+                )
+                btn.pack(fill=tk.X, pady=1)
+                self._add_tooltip(btn, label)
+
+        # Separator
+        ttk.Separator(self, orient="horizontal").pack(fill="x", pady=5)
+
         # Action buttons
         action_items = [
             ("undo", "Annuler", "undo_last_annotation"),
