@@ -1,0 +1,112 @@
+app:
+  title: "VisioDoc3 - Document Viewer"
+
+menus:
+  file:
+    label: "File"
+    open: "Open"
+    save: "Save"
+    close: "Close File"
+    exit: "Exit"
+  annotations:
+    label: "Annotations"
+  view:
+    label: "View"
+  language:
+    label: "Language"
+    french: "Français"
+    english: "English"
+
+tools:
+  freedraw:
+    name: "Freehand Draw"
+    tooltip: "Activate the freehand drawing tool (Ctrl+F)"
+  rectangle:
+    name: "Rectangle"
+    tooltip: "Activate the rectangle tool (Ctrl+R)"
+  circle:
+    name: "Circle"
+    tooltip: "Activate the circle tool (Ctrl+C)"
+  line:
+    name: "Line"
+    tooltip: "Activate the line tool (Ctrl+L)"
+  text:
+    name: "Add Text"
+    tooltip: "Activate the text tool (Ctrl+T)"
+  blur:
+    name: "Blur Area"
+    tooltip: "Activate the blur tool (Ctrl+B)"
+  arrow:
+    name: "Arrow"
+    tooltip: "Activate the arrow tool (Ctrl+A)"
+  highlight:
+    name: "Highlight"
+    tooltip: "Activate the highlight tool (Ctrl+H)"
+  selection:
+    name: "Selection"
+    tooltip: "Activate the selection tool (Ctrl+S)"
+  color_picker:
+    name: "Choose Color"
+    tooltip: "Open the color palette (Ctrl+K)"
+  size_picker:
+    name: "Choose Size"
+    tooltip: "Open the size selector (Ctrl+I)"
+
+sidebar:
+  tooltips:
+    freedraw: "Freehand Draw"
+    rectangle: "Rectangle"
+    circle: "Circle"
+    line: "Line"
+    text: "Text"
+    blur: "Blur"
+    arrow: "Arrow"
+    highlight: "Highlight"
+    selection: "Selection"
+    color_picker: "Choose Color"
+    size_picker: "Choose Size"
+    flip_horizontal: "Flip Horizontal"
+    flip_vertical: "Flip Vertical"
+    fullscreen: "Fullscreen"
+    open_file: "Open File"
+    close_file: "Close File"
+    undo: "Undo"
+    redo: "Redo"
+    save: "Save"
+    clear: "Clear"
+
+view:
+  zoom_in: "Zoom +"
+  zoom_out: "Zoom -"
+  flip_horizontal: "Flip Horizontal"
+  flip_vertical: "Flip Vertical"
+  fullscreen: "Fullscreen"
+  settings: "Settings"
+
+actions:
+  undo: "Undo"
+  redo: "Redo"
+  delete: "Delete"
+  clear: "Clear All"
+  save: "Save"
+  help: "Help"
+
+help:
+  title: "VisioDoc3 User Manual"
+  loading: "Loading camera..."
+  close: "Close"
+  manual: |
+    # VisioDoc3 User Guide
+
+    **Interface Overview:**
+    - Left sidebar: Annotation tools (draw, text, shapes)
+    - Center: Video display from webcam
+    - Top toolbar: File, Annotations, View, Language menus
+    - Right sidebar: Actions (save, clear, undo/redo)
+
+    **Quick Tips:**
+    - Use tools from sidebar to annotate
+    - Zoom with Ctrl+Wheel or Ctrl+/-
+    - Pan with middle mouse button when zoomed
+    - Save annotated images as PNG or PDF
+

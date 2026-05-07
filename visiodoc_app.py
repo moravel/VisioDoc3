@@ -12,6 +12,7 @@ from ui.theme_manager import get_theme_manager
 from ui.icon_loader import get_icon_loader
 from ui.compact_sidebar import CompactSidebar
 from ui.top_toolbar import TopToolbar
+from ui.language_manager import get_language_manager
 
 
 def get_system_font(size):
@@ -123,7 +124,8 @@ class VisioDoc3(tk.Tk):
         Initialise la fenêtre de l'application VisioDoc3 et ses composants.
         """
         super().__init__()
-        self.title("VisioDoc3 - Visionneuse de Documents")
+        self.language_manager = get_language_manager()
+        self.title(self.language_manager.tr("app.title"))
 
         self.theme_manager = get_theme_manager()
         self.icon_loader = get_icon_loader()
@@ -200,6 +202,7 @@ class VisioDoc3(tk.Tk):
         self.use_hybrid_layout = (
             True  # Flag for hybrid top toolbar + compact sidebar layout
         )
+        self.tooltips = []  # List to store Tooltip objects for language refresh / Liste pour stocker les objets Tooltip pour le rafraîchissement de langue
 
         # Main layout frame setup
         # Configuration du cadre de mise en page principal
@@ -337,6 +340,15 @@ class VisioDoc3(tk.Tk):
             if pyi_splash:
                 pyi_splash.close()
 
+    def on_language_change(self):
+        """Refresh UI when language changes."""
+        self.title(self.language_manager.tr("app.title"))
+        if hasattr(self, "top_toolbar") and self.top_toolbar:
+            self.top_toolbar.refresh_labels()
+        if hasattr(self, "compact_sidebar") and self.compact_sidebar:
+            self.compact_sidebar.refresh_tooltips()
+        self._refresh_classic_tooltips()
+
     def _build_hybrid_layout(self):
         """Build the hybrid top toolbar + compact sidebar layout."""
         theme = self.theme_manager.get_current_theme()
@@ -375,7 +387,12 @@ class VisioDoc3(tk.Tk):
             "close_file": self.close_file,
         }
         self.compact_sidebar = CompactSidebar(
-            self.main_frame, self.icons, commands, app=self, style="Modern.TFrame"
+            self.main_frame,
+            self.icons,
+            commands,
+            app=self,
+            style="Modern.TFrame",
+            language_manager=self.language_manager,
         )
         self.compact_sidebar.grid(row=1, column=0, sticky="ns", padx=5, pady=5)
 
@@ -436,7 +453,7 @@ class VisioDoc3(tk.Tk):
             (50, 50, 50),
         )
         draw = ImageDraw.Draw(self.placeholder_image)
-        text = "Chargement de la caméra..."
+        text = self.language_manager.tr("help.loading")
         text_color = (200, 200, 200)
         try:
             font = get_system_font(30)
@@ -465,311 +482,302 @@ class VisioDoc3(tk.Tk):
 
     def _create_tool_buttons(self):
         """Create annotation tool buttons for classic layout."""
-        # Tool buttons
-        ttk.Button(
+        lm = self.language_manager
+
+        def add_button_and_tooltip(parent, text, image, command, tooltip_text):
+            btn = ttk.Button(
+                parent,
+                text=text,
+                image=image,
+                compound=tk.LEFT,
+                style="Modern.TButton",
+                command=command,
+            )
+            btn.pack(fill=tk.X, pady=2)
+            tooltip = Tooltip(parent.winfo_children()[-1], tooltip_text)
+            self.tooltips.append(tooltip)
+
+        add_button_and_tooltip(
             self.left_panel,
-            text="Dessin Main Levée",
-            image=self.icons.get("freedraw"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("freedraw"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Active l'outil de dessin à main levée (Ctrl+F)",
+            lm.tr("tools.freedraw.name"),
+            self.icons.get("freedraw"),
+            lambda: self.set_tool("freedraw"),
+            lm.tr("tools.freedraw.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Rectangle",
-            image=self.icons.get("rectangle"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("rectangle"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil rectangle (Ctrl+R)"
+            lm.tr("tools.rectangle.name"),
+            self.icons.get("rectangle"),
+            lambda: self.set_tool("rectangle"),
+            lm.tr("tools.rectangle.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Cercle",
-            image=self.icons.get("circle"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("circle"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil cercle (Ctrl+C)")
-
-        ttk.Button(
-            self.left_panel,
-            text="Ligne",
-            image=self.icons.get("line"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("line"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil ligne (Ctrl+L)")
-
-        ttk.Button(
-            self.left_panel,
-            text="Ajouter Texte",
-            image=self.icons.get("text"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("text"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil texte (Ctrl+T)")
-
-        ttk.Button(
-            self.left_panel,
-            text="Zone de Flou",
-            image=self.icons.get("blur"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("blur"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil de flou (Ctrl+B)")
-
-        ttk.Button(
-            self.left_panel,
-            text="Flèche",
-            image=self.icons.get("arrow"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("arrow"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(self.left_panel.winfo_children()[-1], "Active l'outil flèche (Ctrl+A)")
-
-        ttk.Button(
-            self.left_panel,
-            text="Surlignage",
-            image=self.icons.get("highlight"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("highlight"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil surlignage (Ctrl+H)"
+            lm.tr("tools.circle.name"),
+            self.icons.get("circle"),
+            lambda: self.set_tool("circle"),
+            lm.tr("tools.circle.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Sélection",
-            image=self.icons.get("selection"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=lambda: self.set_tool("selection"),
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1], "Active l'outil de sélection (Ctrl+S)"
+            lm.tr("tools.line.name"),
+            self.icons.get("line"),
+            lambda: self.set_tool("line"),
+            lm.tr("tools.line.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Choisir Couleur",
-            image=self.icons.get("color_picker"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.choose_annotation_color,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Ouvre la palette de couleurs (Ctrl+K)",
+            lm.tr("tools.text.name"),
+            self.icons.get("text"),
+            lambda: self.set_tool("text"),
+            lm.tr("tools.text.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Choisir Taille",
-            image=self.icons.get("size_picker"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.choose_annotation_size,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Ouvre le sélecteur de taille (Ctrl+I)",
+            lm.tr("tools.blur.name"),
+            self.icons.get("blur"),
+            lambda: self.set_tool("blur"),
+            lm.tr("tools.blur.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Flip Horizontal",
-            image=self.icons.get("flip_horizontal"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.flip_horizontal,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Retournement horizontal de l'image (Ctrl+J)",
+            lm.tr("tools.arrow.name"),
+            self.icons.get("arrow"),
+            lambda: self.set_tool("arrow"),
+            lm.tr("tools.arrow.tooltip"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.left_panel,
-            text="Flip Vertical",
-            image=self.icons.get("flip_vertical"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.flip_vertical,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.left_panel.winfo_children()[-1],
-            "Retournement vertical de l'image (Ctrl+U)",
+            lm.tr("tools.highlight.name"),
+            self.icons.get("highlight"),
+            lambda: self.set_tool("highlight"),
+            lm.tr("tools.highlight.tooltip"),
         )
 
-        # Zoom controls
+        add_button_and_tooltip(
+            self.left_panel,
+            lm.tr("tools.selection.name"),
+            self.icons.get("selection"),
+            lambda: self.set_tool("selection"),
+            lm.tr("tools.selection.tooltip"),
+        )
+
+        add_button_and_tooltip(
+            self.left_panel,
+            lm.tr("tools.color_picker.name"),
+            self.icons.get("color_picker"),
+            self.choose_annotation_color,
+            lm.tr("tools.color_picker.tooltip"),
+        )
+
+        add_button_and_tooltip(
+            self.left_panel,
+            lm.tr("tools.size_picker.name"),
+            self.icons.get("size_picker"),
+            self.choose_annotation_size,
+            lm.tr("tools.size_picker.tooltip"),
+        )
+
+        add_button_and_tooltip(
+            self.left_panel,
+            lm.tr("view.flip_horizontal"),
+            self.icons.get("flip_horizontal"),
+            self.flip_horizontal,
+            f"{lm.tr('view.flip_horizontal')} (Ctrl+J)",
+        )
+
+        add_button_and_tooltip(
+            self.left_panel,
+            lm.tr("view.flip_vertical"),
+            self.icons.get("flip_vertical"),
+            self.flip_vertical,
+            f"{lm.tr('view.flip_vertical')} (Ctrl+U)",
+        )
+
         ttk.Separator(self.left_panel, orient="horizontal").pack(
             fill="x", pady=10, padx=5
         )
         zoom_frame = ttk.Frame(self.left_panel, style="Modern.TFrame")
         zoom_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(zoom_frame, text="Zoom:", style="White.TLabel").pack(
-            side=tk.LEFT, padx=5
-        )
+        ttk.Label(
+            zoom_frame,
+            text=lm.tr("view.zoom_in").replace("+", ""),
+            style="White.TLabel",
+        ).pack(side=tk.LEFT, padx=5)
         zoom_in_btn = ttk.Button(
             zoom_frame, text="+", style="Modern.TButton", command=self.zoom_in, width=3
         )
         zoom_in_btn.pack(side=tk.LEFT)
-        Tooltip(zoom_in_btn, "Zoom avant (Ctrl++)")
+        tooltip_in = Tooltip(zoom_in_btn, f"{lm.tr('view.zoom_in')} (Ctrl++)")
+        self.tooltips.append(tooltip_in)
         zoom_out_btn = ttk.Button(
             zoom_frame, text="-", style="Modern.TButton", command=self.zoom_out, width=3
         )
         zoom_out_btn.pack(side=tk.LEFT)
-        Tooltip(zoom_out_btn, "Zoom arrière (Ctrl+-)")
+        tooltip_out = Tooltip(zoom_out_btn, f"{lm.tr('view.zoom_out')} (Ctrl+-)")
+        self.tooltips.append(tooltip_out)
+
+    def _refresh_classic_tooltips(self):
+        """Refresh tooltip texts in classic layout when language changes."""
+        if not self.use_hybrid_layout:
+            lm = self.language_manager
+            for i, tooltip in enumerate(self.tooltips):
+                if i == 0:
+                    tooltip.set_text(lm.tr("tools.freedraw.tooltip"))
+                elif i == 1:
+                    tooltip.set_text(lm.tr("tools.rectangle.tooltip"))
+                elif i == 2:
+                    tooltip.set_text(lm.tr("tools.circle.tooltip"))
+                elif i == 3:
+                    tooltip.set_text(lm.tr("tools.line.tooltip"))
+                elif i == 4:
+                    tooltip.set_text(lm.tr("tools.text.tooltip"))
+                elif i == 5:
+                    tooltip.set_text(lm.tr("tools.blur.tooltip"))
+                elif i == 6:
+                    tooltip.set_text(lm.tr("tools.arrow.tooltip"))
+                elif i == 7:
+                    tooltip.set_text(lm.tr("tools.highlight.tooltip"))
+                elif i == 8:
+                    tooltip.set_text(lm.tr("tools.selection.tooltip"))
+                elif i == 9:
+                    tooltip.set_text(lm.tr("tools.color_picker.tooltip"))
+                elif i == 10:
+                    tooltip.set_text(lm.tr("tools.size_picker.tooltip"))
+                elif i == 11:
+                    tooltip.set_text(f"{lm.tr('view.flip_horizontal')} (Ctrl+J)")
+                elif i == 12:
+                    tooltip.set_text(f"{lm.tr('view.flip_vertical')} (Ctrl+U)")
+                elif i == 13:
+                    tooltip.set_text(f"{lm.tr('view.zoom_in')} (Ctrl++)")
+                elif i == 14:
+                    tooltip.set_text(f"{lm.tr('view.zoom_out')} (Ctrl+-)")
+                elif i == 15:
+                    tooltip.set_text(f"{lm.tr('menus.file.open')} file (Ctrl+O)")
+                elif i == 16:
+                    tooltip.set_text(lm.tr("menus.file.close"))
+                elif i == 17:
+                    tooltip.set_text(f"{lm.tr('actions.save')} (Ctrl+Shift+S)")
+                elif i == 18:
+                    tooltip.set_text(f"{lm.tr('actions.clear')} (Ctrl+E)")
+                elif i == 19:
+                    tooltip.set_text(f"{lm.tr('actions.undo')} (Ctrl+Z)")
+                elif i == 20:
+                    tooltip.set_text(f"{lm.tr('actions.redo')} (Ctrl+Y)")
+                elif i == 21:
+                    tooltip.set_text(f"{lm.tr('actions.delete')} (Suppr)")
+                elif i == 22:
+                    tooltip.set_text(f"{lm.tr('view.settings')} (Ctrl+P)")
+                elif i == 23:
+                    tooltip.set_text(f"{lm.tr('actions.help')} (Ctrl+?)")
+                elif i == 24:
+                    tooltip.set_text(f"{lm.tr('view.fullscreen')} (F11)")
 
     def _create_right_panel(self):
         """Create the right panel with action buttons for classic layout."""
+        lm = self.language_manager
         self.right_panel = ttk.Frame(self.main_frame, width=150, style="Modern.TFrame")
         self.right_panel.grid(row=0, column=2, sticky="ns", padx=5, pady=5)
         self.right_panel.grid_propagate(False)
 
-        ttk.Button(
+        def add_button_and_tooltip(parent, text, image, command, tooltip_text):
+            btn = ttk.Button(
+                parent,
+                text=text,
+                image=image,
+                compound=tk.LEFT,
+                style="Modern.TButton",
+                command=command,
+            )
+            btn.pack(fill=tk.X, pady=2)
+            tooltip = Tooltip(parent.winfo_children()[-1], tooltip_text)
+            self.tooltips.append(tooltip)
+
+        add_button_and_tooltip(
             self.right_panel,
-            text="Ouvrir Fichier",
-            image=self.icons.get("open_file"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.open_file,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Ouvre un fichier image ou PDF (Ctrl+O)",
+            lm.tr("menus.file.open"),
+            self.icons.get("open_file"),
+            self.open_file,
+            f"{lm.tr('menus.file.open')} file (Ctrl+O)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Fermer Fichier",
-            image=self.icons.get("close_file"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.close_file,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Ferme le fichier et réactive la webcam",
+            lm.tr("menus.file.close"),
+            self.icons.get("close_file"),
+            self.close_file,
+            lm.tr("dialogs.close_file"),
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Sauvegarder",
-            image=self.icons.get("save"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.save_image,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Sauvegarde l'image actuelle (Ctrl+Shift+S)",
+            lm.tr("actions.save"),
+            self.icons.get("save"),
+            self.save_image,
+            f"{lm.tr('actions.save')} (Ctrl+Shift+S)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Effacer Tout",
-            image=self.icons.get("clear"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.clear_all_annotations,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Efface toutes les annotations (Ctrl+E)",
+            lm.tr("actions.clear"),
+            self.icons.get("clear"),
+            self.clear_all_annotations,
+            f"{lm.tr('actions.clear')} (Ctrl+E)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Annuler (Undo)",
-            image=self.icons.get("undo"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.undo_last_annotation,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1], "Annule la dernière action (Ctrl+Z)"
+            lm.tr("actions.undo"),
+            self.icons.get("undo"),
+            self.undo_last_annotation,
+            f"{lm.tr('actions.undo')} (Ctrl+Z)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Rétablir (Redo)",
-            image=self.icons.get("redo"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.redo_last_annotation,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Rétablit la dernière action annulée (Ctrl+Y)",
+            lm.tr("actions.redo"),
+            self.icons.get("redo"),
+            self.redo_last_annotation,
+            f"{lm.tr('actions.redo')} (Ctrl+Y)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Supprimer",
-            image=self.icons.get("delete"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.delete_selected_annotation,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Supprime l'annotation sélectionnée (Suppr)",
+            lm.tr("actions.delete"),
+            self.icons.get("delete"),
+            self.delete_selected_annotation,
+            f"{lm.tr('actions.delete')} (Suppr)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Paramètres",
-            image=self.icons.get("settings"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.open_settings_dialog,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Ouvre les paramètres de la caméra (Ctrl+P)",
+            lm.tr("view.settings"),
+            self.icons.get("settings"),
+            self.open_settings_dialog,
+            f"{lm.tr('view.settings')} (Ctrl+P)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Aide",
-            image=self.icons.get("help"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.show_help,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Ouvre le manuel d'utilisation (Ctrl+?)",
+            lm.tr("actions.help"),
+            self.icons.get("help"),
+            self.show_help,
+            f"{lm.tr('actions.help')} (Ctrl+?)",
         )
 
-        ttk.Button(
+        add_button_and_tooltip(
             self.right_panel,
-            text="Plein écran",
-            image=self.icons.get("fullscreen"),
-            compound=tk.LEFT,
-            style="Modern.TButton",
-            command=self.toggle_fullscreen,
-        ).pack(fill=tk.X, pady=2)
-        Tooltip(
-            self.right_panel.winfo_children()[-1],
-            "Active/désactive le mode plein écran (F11)",
+            lm.tr("view.fullscreen"),
+            self.icons.get("fullscreen"),
+            self.toggle_fullscreen,
+            f"{lm.tr('view.fullscreen')} (F11)",
         )
 
         ttk.Separator(self.right_panel, orient="horizontal").pack(
@@ -809,7 +817,7 @@ class VisioDoc3(tk.Tk):
         self.camera_var = tk.StringVar(self)
         self.camera_options = []
         self.camera_menu_placeholder = ttk.Label(
-            self.camera_selection_frame, text="Recherche de caméras en cours..."
+            self.camera_selection_frame, text=self.language_manager.tr("help.loading")
         )
         self.camera_menu_placeholder.pack(side=tk.LEFT)
 
@@ -836,176 +844,14 @@ class VisioDoc3(tk.Tk):
         Affiche le manuel d'utilisation dans une nouvelle fenêtre Toplevel.
         """
         help_dialog = tk.Toplevel(self)
-        help_dialog.title("Manuel d'Utilisateur VisioDoc3")
+        help_dialog.title(self.language_manager.tr("help.title"))
         help_dialog.transient(
             self
         )  # Make it transient to the main window / Le rend transitoire à la fenêtre principale
         help_dialog.grab_set()  # Make it modal (blocks interaction with main window) / Le rend modal (bloque l'interaction avec la fenêtre principale)
 
-        # Content of the user manual (multiline string)
-        # Contenu du manuel d'utilisation (chaîne de caractères multiligne)
-        manual_content = """
-# Manuel d'Utilisateur VisioDoc3
-
-## Introduction
-
-VisioDoc3 est une application intuitive conçue pour la visualisation de flux vidéo en temps réel provenant de votre webcam, avec des capacités d'annotation avancées. Que vous ayez besoin de mettre en évidence des détails, d'ajouter des notes ou de flouter des informations sensibles, VisioDoc3 offre une suite complète d'outils pour améliorer votre expérience de capture et de manipulation d'images.
-
-## Interface Utilisateur
-
-L'interface de VisioDoc3 est divisée en trois sections principales :
-
-1.  **Panneau Gauche (Outils d'Annotation) :** Contient tous les outils de dessin et de modification, ainsi que les contrôles de zoom.
-2.  **Zone d'Affichage Vidéo :** Affiche le flux en direct de la webcam et les annotations appliquées.
-3.  **Panneau Droit (Actions) :** Comprend les boutons pour sauvegarder, effacer, annuler/rétablir et accéder aux paramètres de la caméra.
-
-## Outils d'Annotation (Panneau Gauche)
-
-### 1. Dessin Main Levée
-
-Permet de dessiner des lignes continues et irrégulières sur l'image, comme avec un crayon.
-
-*   **Utilisation :** Cliquez et maintenez le bouton gauche de la souris enfoncé, puis faites glisser pour dessiner. (Raccourci : `Ctrl+F`)
-
-### 2. Rectangle
-
-Permet de dessiner des formes rectangulaires.
-
-*   **Utilisation :** Cliquez et faites glisser la souris pour définir les coins opposés du rectangle. (Raccourci : `Ctrl+R`)
-
-### 3. Cercle
-
-Permet de dessiner des formes circulaires.
-
-*   **Utilisation :** Cliquez et faites glisser la souris pour définir le rayon du cercle à partir de son centre. (Raccourci : `Ctrl+C`)
-
-### 4. Ligne
-
-Permet de dessiner des lignes droites.
-
-*   **Utilisation :** Cliquez pour le point de départ, puis cliquez à nouveau pour le point d'arrivée de la ligne. (Raccourci : `Ctrl+L`)
-
-### 5. Ajouter Texte
-
-Permet d'ajouter du texte sur l'image.
-
-*   **Utilisation :** Cliquez à l'endroit où vous souhaitez placer le texte. Une boîte de dialogue apparaîtra pour que vous puissiez saisir votre texte. Validez avec "OK". (Raccourci : `Ctrl+T`)
-
-### 6. Zone de Flou
-
-Permet d'appliquer un effet de flou sur une zone rectangulaire de l'image, utile pour masquer des informations sensibles.
-
-*   **Utilisation :** Cliquez et faites glisser la souris pour définir la zone à flouter. (Raccourci : `Ctrl+B`)
-
-### 7. Flèche
-
-Permet de dessiner des flèches pour indiquer des directions ou des éléments spécifiques.
-
-*   **Utilisation :** Cliquez et faites glisser la souris pour définir le point de départ et la direction de la flèche. (Raccourci : `Ctrl+A`)
-
-### 8. Surlignage
-
-Permet de surligner une zone rectangulaire avec une couleur translucide.
-
-*   **Utilisation :** Cliquez et faites glisser la souris pour définir la zone à surligner. (Raccourci : `Ctrl+H`)
-
-### 9. Sélection
-
-Cet outil est essentiel pour interagir avec les annotations existantes.
-
-*   **Sélectionner :** Cliquez sur une annotation pour la sélectionner. Une fois sélectionnée, une boîte englobante verte et des poignées de redimensionnement apparaissent. (Raccourci : `Ctrl+S`)
-*   **Déplacer :** Cliquez et faites glisser une annotation sélectionnée pour la déplacer.
-*   **Redimensionner :** Cliquez et faites glisser l'une des poignées de redimensionnement (petits carrés verts aux coins/bords de la boîte englobante) pour ajuster la taille de l'annotation.
-
-### 10. Choisir Couleur
-
-Ouvre une boîte de dialogue pour sélectionner la couleur des annotations futures.
-
-*   **Utilisation :** Cliquez sur le bouton, choisissez votre couleur et validez. (Raccourci : `Ctrl+K`)
-
-### 11. Choisir Taille
-
-Ouvre une boîte de dialogue pour ajuster l'épaisseur du trait des annotations et la taille de la police pour le texte.
-
-*   **Utilisation :** Utilisez les curseurs pour définir les valeurs souhaitées et validez avec "OK". (Raccourci : `Ctrl+I`)
-
-### 12. Zoom
-
-Contrôle le niveau de zoom de l'image affichée.
-
-*   **Boutons +/- :** Cliquez sur "+" pour zoomer, sur "-" pour dézoomer. (Raccourcis : `Ctrl++` / `Ctrl+=` pour zoomer, `Ctrl+-` pour dézoomer)
-*   **Molette de la souris :** Faites défiler la molette vers le haut pour zoomer, vers le bas pour dézoomer. Le zoom est centré sur la position du curseur de la souris.
-
-### 13. Retournement (Flip)
-
-Permet de retourner l'image horizontalement ou verticalement.
-
-*   **Retournement Horizontal :** Inverse l'image de gauche à droite. (Raccourci : `Ctrl+J`)
-*   **Retournement Vertical :** Inverse l'image de haut en bas. (Raccourci : `Ctrl+U`)
-
-## Zone d'Affichage Vidéo
-
-Cette zone affiche le flux en direct de votre webcam. Toutes les annotations sont superposées sur ce flux.
-
-*   **Panoramique (Déplacement de la vue) :** Maintenez le bouton central de la souris (molette) enfoncé et faites glisser pour déplacer la vue lorsque l'image est zoomée.
-
-## Panneau Droit (Actions)
-
-### 1. Sauvegarder
-
-Permet de sauvegarder l'image actuelle (avec toutes les annotations et le niveau de zoom/panoramique appliqué) dans un fichier.
-
-*   **Utilisation :** Cliquez sur le bouton. Une boîte de dialogue vous permettra de choisir le nom du fichier et le format (PNG ou PDF). (Raccourci : `Ctrl+Shift+S`)
-
-### 2. Effacer Tout
-
-Supprime toutes les annotations de l'image.
-
-*   **Utilisation :** Cliquez sur le bouton pour effacer toutes les annotations. (Raccourci : `Ctrl+E`)
-
-### 3. Annuler (Undo)
-
-Annule la dernière action d'annotation.
-
-*   **Utilisation :** Cliquez sur le bouton. Vous pouvez annuler plusieurs actions consécutives. (Raccourci : `Ctrl+Z`)
-
-### 4. Rétablir (Redo)
-
-Rétablit une action qui a été annulée.
-
-*   **Utilisation :** Cliquez sur le bouton. Fonctionne après avoir utilisé "Annuler". (Raccourci : `Ctrl+Y`)
-
-### 5. Supprimer
-
-Supprime l'annotation actuellement sélectionnée.
-
-*   **Utilisation :** Sélectionnez une annotation avec l'outil "Sélection", puis cliquez sur ce bouton ou appuyez sur la touche `Suppr` de votre clavier. (Raccourci : `Suppr`)
-
-### 6. Paramètres
-
-Ouvre une boîte de dialogue pour ajuster les paramètres de la webcam.
-
-*   **Luminosité :** Ajuste la luminosité du flux vidéo.
-*   **Contraste :** Ajuste le contraste du flux vidéo.
-*   **Résolution :** Permet de choisir la résolution de la webcam parmi les options disponibles. (Raccourci : `Ctrl+P`)
-
-### 7. Aide
-
-Ouvre le manuel d'utilisation directement dans l'application.
-
-*   **Utilisation :** Cliquez sur le bouton. (Raccourci : `Ctrl+?`)
-
-## Dépannage
-
-*   **"Aucune webcam trouvée" :** Assurez-vous que votre webcam est correctement connectée et que les pilotes sont installés. Redémarrez l'application.
-*   **Problèmes de performance :** Si le flux vidéo est lent, essayez de réduire la résolution de la webcam dans les paramètres.
-*   **Annotations incorrectes :** Assurez-vous que l'outil "Sélection" est désactivé lorsque vous dessinez de nouvelles annotations. Si vous redimensionnez, assurez-vous de bien cliquer sur les poignées de redimensionnement.
-
-Pour toute autre question ou problème, veuillez consulter la documentation du projet ou contacter le support.
-"""
-
         text_widget = tk.Text(help_dialog, wrap="word", font=("TkDefaultFont", 10))
-        text_widget.insert(tk.END, manual_content)
+        text_widget.insert(tk.END, self.language_manager.tr("help.manual"))
         text_widget.config(
             state="disabled"
         )  # Make it read-only / Le rend en lecture seule
@@ -1017,9 +863,11 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         scrollbar.pack(side="right", fill="y")
         text_widget.config(yscrollcommand=scrollbar.set)
 
-        ttk.Button(help_dialog, text="Fermer", command=help_dialog.destroy).pack(
-            pady=10
-        )
+        ttk.Button(
+            help_dialog,
+            text=self.language_manager.tr("help.close"),
+            command=help_dialog.destroy,
+        ).pack(pady=10)
 
         # Center the help dialog on the screen
         # Centre la boîte de dialogue d'aide sur l'écran

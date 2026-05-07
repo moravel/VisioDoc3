@@ -1,0 +1,112 @@
+app:
+  title: "VisioDoc3 - Visionneuse de Documents"
+
+menus:
+  file:
+    label: "Fichier"
+    open: "Ouvrir"
+    save: "Sauvegarder"
+    close: "Fermer le fichier"
+    exit: "Quitter"
+  annotations:
+    label: "Annotations"
+  view:
+    label: "Affichage"
+  language:
+    label: "Langue"
+    french: "Français"
+    english: "English"
+
+tools:
+  freedraw:
+    name: "Dessin Main Levée"
+    tooltip: "Active l'outil de dessin à main levée (Ctrl+F)"
+  rectangle:
+    name: "Rectangle"
+    tooltip: "Active l'outil rectangle (Ctrl+R)"
+  circle:
+    name: "Cercle"
+    tooltip: "Active l'outil cercle (Ctrl+C)"
+  line:
+    name: "Ligne"
+    tooltip: "Active l'outil ligne (Ctrl+L)"
+  text:
+    name: "Ajouter Texte"
+    tooltip: "Active l'outil texte (Ctrl+T)"
+  blur:
+    name: "Zone de Flou"
+    tooltip: "Active l'outil de flou (Ctrl+B)"
+  arrow:
+    name: "Flèche"
+    tooltip: "Active l'outil flèche (Ctrl+A)"
+  highlight:
+    name: "Surlignage"
+    tooltip: "Active l'outil surlignage (Ctrl+H)"
+  selection:
+    name: "Sélection"
+    tooltip: "Active l'outil de sélection (Ctrl+S)"
+  color_picker:
+    name: "Choisir Couleur"
+    tooltip: "Ouvre la palette de couleurs (Ctrl+K)"
+  size_picker:
+    name: "Choisir Taille"
+    tooltip: "Ouvre le sélecteur de taille (Ctrl+I)"
+
+sidebar:
+  tooltips:
+    freedraw: "Dessin Libre"
+    rectangle: "Rectangle"
+    circle: "Cercle"
+    line: "Ligne"
+    text: "Texte"
+    blur: "Flou"
+    arrow: "Flèche"
+    highlight: "Surlignage"
+    selection: "Sélection"
+    color_picker: "Choisir Couleur"
+    size_picker: "Choisir Taille"
+    flip_horizontal: "Retourner Horizontal"
+    flip_vertical: "Retourner Vertical"
+    fullscreen: "Plein Écran"
+    open_file: "Ouvrir Fichier"
+    close_file: "Fermer Fichier"
+    undo: "Annuler"
+    redo: "Rétablir"
+    save: "Sauvegarder"
+    clear: "Effacer"
+
+view:
+  zoom_in: "Zoom +"
+  zoom_out: "Zoom -"
+  flip_horizontal: "Retourner Horizontal"
+  flip_vertical: "Retourner Vertical"
+  fullscreen: "Plein Écran"
+  settings: "Paramètres"
+
+actions:
+  undo: "Annuler"
+  redo: "Rétablir"
+  delete: "Supprimer"
+  clear: "Effacer Tout"
+  save: "Sauvegarder"
+  help: "Aide"
+
+help:
+  title: "Manuel d'Utilisateur VisioDoc3"
+  loading: "Chargement de la caméra..."
+  close: "Fermer"
+  manual: |
+    # Guide VisioDoc3
+
+    **Interface:**
+    - Barre latérale gauche: Outils d'annotation
+    - Centre: Affichage vidéo de la webcam
+    - Barre d'outils: Menus Fichier, Annotations, Affichage, Langue
+    - Barre latérale droite: Actions (sauvegarder, effacer, annuler)
+
+    **Raccourcis:**
+    - Utilisez les outils de la barre latérale
+    - Zoom avec Ctrl+Molette ou Ctrl+/-
+    - Panoramique avec le bouton milieu de la souris
+    - Sauvegardez en PNG ou PDF
+

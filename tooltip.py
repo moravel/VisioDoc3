@@ -1,5 +1,6 @@
 import tkinter as tk
 
+
 # Tooltip class for displaying hover information over widgets.
 # Classe Tooltip pour afficher des informations au survol des widgets.
 class Tooltip:
@@ -16,13 +17,27 @@ class Tooltip:
         """
         self.widget = widget
         self.text = text
-        self.tooltip_window = None # The Toplevel window for the tooltip / La fenêtre Toplevel pour l'info-bulle
-        self.id = None # ID for the scheduled 'show_tooltip' event / ID pour l'événement 'show_tooltip' planifié
-        
+        self.tooltip_window = None
+        self.id = None
+
         # Bind mouse enter and leave events to show/hide the tooltip
-        # Lie les événements d'entrée et de sortie de la souris pour afficher/masquer l'info-bulle
         self.widget.bind("<Enter>", self.show_tooltip)
         self.widget.bind("<Leave>", self.hide_tooltip)
+
+    def set_text(self, text):
+        """
+        Updates the tooltip text.
+        Met à jour le texte de l'info-bulle.
+
+        Args:
+            text (str): The new text to display in the tooltip.
+                        Le nouveau texte à afficher dans l'info-bulle.
+        """
+        self.text = text
+        if self.tooltip_window:
+            for child in self.tooltip_window.winfo_children():
+                if isinstance(child, tk.Label):
+                    child.config(text=self.text)
 
     def show_tooltip(self, event=None):
         """
@@ -54,13 +69,17 @@ class Tooltip:
 
         # Create a label to display the tooltip text
         # Crée une étiquette pour afficher le texte de l'info-bulle
-        label = tk.Label(self.tooltip_window,
-                         text=self.text,
-                         background="#FFFFEA", # Light yellow background / Fond jaune clair
-                         relief="solid", # Solid border / Bordure solide
-                         borderwidth=1,
-                         font=("tahoma", "8", "normal"))
-        label.pack(padx=1) # Add a small padding inside the label / Ajoute un petit rembourrage à l'intérieur de l'étiquette
+        label = tk.Label(
+            self.tooltip_window,
+            text=self.text,
+            background="#FFFFEA",  # Light yellow background / Fond jaune clair
+            relief="solid",  # Solid border / Bordure solide
+            borderwidth=1,
+            font=("tahoma", "8", "normal"),
+        )
+        label.pack(
+            padx=1
+        )  # Add a small padding inside the label / Ajoute un petit rembourrage à l'intérieur de l'étiquette
 
         # Force the tooltip window to update its geometry so winfo_width/height return correct values
         # Force la fenêtre de l'info-bulle à mettre à jour sa géométrie afin que winfo_width/height renvoie des valeurs correctes
@@ -76,7 +95,9 @@ class Tooltip:
         # Calculate tooltip position (initially below the widget)
         # Calcule la position de l'info-bulle (initialement sous le widget)
         tooltip_x = x
-        tooltip_y = y + height + 5 # 5 pixels below the widget / 5 pixels sous le widget
+        tooltip_y = (
+            y + height + 5
+        )  # 5 pixels below the widget / 5 pixels sous le widget
 
         # Get screen dimensions to prevent tooltip from going off-screen
         # Obtient les dimensions de l'écran pour empêcher l'info-bulle de sortir de l'écran
@@ -91,12 +112,16 @@ class Tooltip:
         # Adjust tooltip_x if it goes off-screen to the right
         # Ajuste tooltip_x s'il sort de l'écran à droite
         if tooltip_x + tooltip_width > screen_width:
-            tooltip_x = screen_width - tooltip_width - 5 # 5 pixels padding from right edge / 5 pixels de rembourrage du bord droit
+            tooltip_x = (
+                screen_width - tooltip_width - 5
+            )  # 5 pixels padding from right edge / 5 pixels de rembourrage du bord droit
 
         # Adjust tooltip_y if it goes off-screen to the bottom (display above instead)
         # Ajuste tooltip_y s'il sort de l'écran en bas (affiche au-dessus à la place)
         if tooltip_y + tooltip_height > screen_height:
-            tooltip_y = y - tooltip_height - 5 # Display above the widget if no space below / Affiche au-dessus du widget s'il n'y a pas d'espace en dessous
+            tooltip_y = (
+                y - tooltip_height - 5
+            )  # Display above the widget if no space below / Affiche au-dessus du widget s'il n'y a pas d'espace en dessous
 
         # Ensure tooltip_x is not negative (off-screen to the left)
         # S'assure que tooltip_x n'est pas négatif (hors écran à gauche)
@@ -110,7 +135,9 @@ class Tooltip:
 
         # Set the final geometry of the tooltip window
         # Définit la géométrie finale de la fenêtre de l'info-bulle
-        self.tooltip_window.wm_geometry(f"{tooltip_width}x{tooltip_height}+{tooltip_x}+{tooltip_y}")
+        self.tooltip_window.wm_geometry(
+            f"{tooltip_width}x{tooltip_height}+{tooltip_x}+{tooltip_y}"
+        )
 
     def hide_tooltip(self, event=None):
         """
