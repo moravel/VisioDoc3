@@ -806,9 +806,6 @@ class VisioDoc3(tk.Tk):
 
         self.camera_selection_frame = ttk.Frame(self.controls_frame)
         self.camera_selection_frame.pack(side=tk.LEFT, padx=10)
-        ttk.Label(self.camera_selection_frame, text="Sélectionner Webcam:").pack(
-            side=tk.LEFT, padx=5
-        )
         self.camera_var = tk.StringVar(self)
         self.camera_options = []
         self.camera_menu_placeholder = ttk.Label(
