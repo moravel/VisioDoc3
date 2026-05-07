@@ -1137,6 +1137,9 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         # Hide the placeholder in all layouts since camera menu is handled separately
         self.camera_menu_placeholder.pack_forget()
 
+        if self.use_hybrid_layout:
+            self.camera_selection_frame.pack_forget()
+
         if not self.use_hybrid_layout:
             if (
                 self.camera_options
