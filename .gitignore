@@ -9,4 +9,4 @@ venv/
 
 # PyInstaller build artifacts
 build/
-dist/
+dist/specifications/\nopenapi.yaml\ncomponents.yaml

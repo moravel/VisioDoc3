@@ -1,0 +1,1036 @@
+# Reusable Component Schemas for VisioDoc3 OpenAPI Documentation
+# This file contains reusable schema definitions referenced by openapi.yaml
+
+components:
+  schemas:
+    # ============================================================
+    # Core Application Schemas
+    # ============================================================
+    
+    Application:
+      type: object
+      description: Main application instance representing the VisioDoc3 desktop application
+      properties:
+        id:
+          type: string
+          description: Unique application instance identifier
+          example: "visiodoc3-app-001"
+        title:
+          type: string
+          description: Application window title
+          example: "VisioDoc3 - Visionneuse de Documents"
+        version:
+          type: string
+          description: Application version following semantic versioning
+          example: "3.0.0"
+        state:
+          $ref: "#/components/schemas/ApplicationState"
+        window:
+          $ref: "#/components/schemas/WindowGeometry"
+        display:
+          $ref: "#/components/schemas/DisplayStatus"
+        configuration:
+          $ref: "#/components/schemas/AppConfig"
+      required:
+        - id
+        - title
+        - version
+        - state
+
+    ApplicationState:
+      type: object
+      description: Current state of the application including mode and active tools
+      properties:
+        mode:
+          type: string
+          enum: [webcam, file, idle]
+          description: Current operational mode of the application
+          example: "webcam"
+        current_tool:
+          type: string
+          enum: [none, line, rectangle, circle, freedraw, text, blur, arrow, highlight, selection]
+          description: Currently selected annotation tool
+          example: "rectangle"
+        zoom_level:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 10.0
+          description: Current zoom level (1.0 = 100%)
+          example: 1.0
+        file_mode:
+          type: boolean
+          description: Indicates if currently viewing a file (vs webcam)
+          example: false
+        has_document:
+          type: boolean
+          description: Indicates if a document (image or PDF) is loaded
+          example: false
+        selected_annotation_id:
+          type: [integer, null]
+          description: ID of currently selected annotation, if any
+          example: 42
+        hovered_annotation_id:
+          type: [integer, null]
+          description: ID of annotation currently under mouse cursor
+          example: null
+        view_offset_x:
+          type: number
+          description: Horizontal pan offset
+        view_offset_y:
+          type: number
+          description: Vertical pan offset
+        is_panning:
+          type: boolean
+          description: Whether panning is in progress
+        current_annotation_color:
+          $ref: "#/components/schemas/ColorBGR"
+        current_annotation_thickness:
+          type: integer
+          description: Current annotation line thickness
+        current_font_size:
+          type: integer
+          description: Current font size for text annotations
+      required:
+        - mode
+        - current_tool
+        - zoom_level
+
+    # Fullscreen state
+    FullscreenState:
+      type: object
+      description: Current fullscreen state of the application
+      properties:
+        isFullscreen:
+          type: boolean
+          description: Whether the application is in fullscreen mode
+          example: true
+        exitKey:
+          type: string
+          description: Key to exit fullscreen mode
+          example: "Escape"
+
+    WindowGeometry:
+      type: object
+      description: Position and dimensions of the application window
+      properties:
+        width:
+          type: integer
+          minimum: 1
+          description: Window width in pixels
+          example: 1920
+        height:
+          type: integer
+          minimum: 1
+          description: Window height in pixels
+          example: 1080
+        x:
+          type: integer
+          description: X coordinate of window top-left corner
+          example: 0
+        y:
+          type: integer
+          description: Y coordinate of window top-left corner
+          example: 0
+        fullscreen:
+          type: boolean
+          description: Whether window is in fullscreen mode
+          example: true
+      required:
+        - width
+        - height
+
+    # ============================================================
+    # Annotation Schemas
+    # ============================================================
+
+    AnnotationBase:
+      type: object
+      description: Base properties shared by all annotation types
+      properties:
+        id:
+          type: integer
+          description: Unique annotation identifier
+          example: 1
+        type:
+          type: string
+          description: Type of annotation
+          enum: [line, rectangle, circle, freedraw, text, blur, arrow, highlight]
+        color:
+          $ref: "#/components/schemas/ColorBGR"
+        thickness:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: Line thickness for applicable annotations
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when annotation was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when annotation was last modified
+      required:
+        - type
+        - color
+
+    Annotation:
+      allOf:
+        - $ref: "#/components/schemas/AnnotationBase"
+        - type: object
+          properties:
+            properties:
+              oneOf:
+                - $ref: "#/components/schemas/LineProperties"
+                - $ref: "#/components/schemas/RectangleProperties"
+                - $ref: "#/components/schemas/CircleProperties"
+                - $ref: "#/components/schemas/FreeDrawProperties"
+                - $ref: "#/components/schemas/TextProperties"
+                - $ref: "#/components/schemas/BlurProperties"
+                - $ref: "#/components/schemas/ArrowProperties"
+                - $ref: "#/components/schemas/HighlightProperties"
+          required:
+            - properties
+
+    AnnotationCreate:
+      type: object
+      description: Request payload for creating a new annotation
+      properties:
+        type:
+          type: string
+          enum: [line, rectangle, circle, freedraw, text, blur, arrow, highlight]
+          description: Type of annotation to create
+        color:
+          $ref: "#/components/schemas/ColorBGR"
+        thickness:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 2
+          description: Line thickness
+        properties:
+          type: object
+          description: Type-specific properties object
+      required:
+        - type
+
+    AnnotationUpdate:
+      type: object
+      description: Request payload for updating an existing annotation
+      properties:
+        color:
+          $ref: "#/components/schemas/ColorBGR"
+        thickness:
+          type: integer
+          minimum: 1
+          maximum: 50
+        properties:
+          type: object
+          description: Partial type-specific properties to update
+
+    # Line Annotation
+    LineProperties:
+      type: object
+      description: Properties specific to line annotations
+      properties:
+        start_point:
+          $ref: "#/components/schemas/Point2D"
+        end_point:
+          $ref: "#/components/schemas/Point2D"
+      required:
+        - start_point
+        - end_point
+
+    # Rectangle Annotation
+    RectangleProperties:
+      type: object
+      description: Properties specific to rectangle annotations
+      properties:
+        corner1:
+          $ref: "#/components/schemas/Point2D"
+        corner2:
+          $ref: "#/components/schemas/Point2D"
+        filled:
+          type: boolean
+          default: false
+          description: Whether rectangle is filled
+      required:
+        - corner1
+        - corner2
+
+    # Circle Annotation
+    CircleProperties:
+      type: object
+      description: Properties specific to circle annotations
+      properties:
+        center:
+          $ref: "#/components/schemas/Point2D"
+        radius:
+          type: integer
+          minimum: 1
+          description: Circle radius in pixels
+        filled:
+          type: boolean
+          default: false
+          description: Whether circle is filled
+      required:
+        - center
+        - radius
+
+    # Freehand Drawing Annotation
+    FreeDrawProperties:
+      type: object
+      description: Properties specific to freehand drawing annotations
+      properties:
+        points:
+          type: array
+          minItems: 2
+          description: Array of points defining the freehand path
+          items:
+            $ref: "#/components/schemas/Point2D"
+      required:
+        - points
+
+    # Text Annotation
+    TextProperties:
+      type: object
+      description: Properties specific to text annotations
+      properties:
+        position:
+          $ref: "#/components/schemas/Point2D"
+        text:
+          type: string
+          description: The text content
+          example: "Sample annotation text"
+        font_size:
+          type: integer
+          minimum: 8
+          maximum: 72
+          default: 20
+          description: Font size in points
+      required:
+        - position
+        - text
+
+    # Blur Annotation
+    BlurProperties:
+      type: object
+      description: Properties specific to blur annotations
+      properties:
+        corner1:
+          $ref: "#/components/schemas/Point2D"
+        corner2:
+          $ref: "#/components/schemas/Point2D"
+        blur_strength:
+          type: integer
+          minimum: 1
+          maximum: 99
+          default: 25
+          description: Gaussian blur kernel size (must be odd)
+      required:
+        - corner1
+        - corner2
+
+    # Arrow Annotation
+    ArrowProperties:
+      type: object
+      description: Properties specific to arrow annotations
+      properties:
+        start_point:
+          $ref: "#/components/schemas/Point2D"
+        end_point:
+          $ref: "#/components/schemas/Point2D"
+        tip_length:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 1.0
+          default: 0.3
+          description: Length of arrowhead relative to line length
+      required:
+        - start_point
+        - end_point
+
+    # Highlight Annotation
+    HighlightProperties:
+      type: object
+      description: Properties specific to highlight annotations
+      properties:
+        corner1:
+          $ref: "#/components/schemas/Point2D"
+        corner2:
+          $ref: "#/components/schemas/Point2D"
+        color:
+          $ref: "#/components/schemas/ColorBGR"
+          default:
+            b: 0
+            g: 255
+            r: 255
+          description: Highlight color (default yellow)
+        opacity:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.3
+          description: Opacity of highlight overlay
+      required:
+        - corner1
+        - corner2
+
+    # ============================================================
+    # Geometry and Transformation Schemas
+    # ============================================================
+
+    Point2D:
+      type: object
+      description: 2D point with integer coordinates
+      properties:
+        x:
+          type: integer
+          description: X coordinate
+        y:
+          type: integer
+          description: Y coordinate
+      required:
+        - x
+        - y
+
+    BoundingBox:
+      type: object
+      description: Axis-aligned bounding box
+      properties:
+        x1:
+          type: integer
+          description: Minimum X coordinate
+        y1:
+          type: integer
+          description: Minimum Y coordinate
+        x2:
+          type: integer
+          description: Maximum X coordinate
+        y2:
+          type: integer
+          description: Maximum Y coordinate
+        width:
+          type: integer
+          description: Width of bounding box (computed)
+        height:
+          type: integer
+          description: Height of bounding box (computed)
+      required:
+        - x1
+        - y1
+        - x2
+        - y2
+
+    ResizeOperation:
+      type: object
+      description: Operation to resize an annotation
+      properties:
+        handle:
+          type: string
+          description: Name of the resize handle being dragged
+          enum: [top-left, top-right, bottom-left, bottom-right, top, bottom, left, right, start, end, size]
+        current_point:
+          $ref: "#/components/schemas/Point2D"
+          description: Current mouse position
+        initial_point:
+          $ref: "#/components/schemas/Point2D"
+          description: Initial mouse position when drag started
+      required:
+        - handle
+        - current_point
+        - initial_point
+
+    # ============================================================
+    # Color Schemas
+    # ============================================================
+
+    ColorBGR:
+      type: object
+      description: Color in BGR format (OpenCV standard)
+      properties:
+        b:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Blue component
+        g:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Green component
+        r:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Red component
+      required:
+        - b
+        - g
+        - r
+      example:
+        b: 255
+        g: 0
+        r: 0
+
+    ColorRGB:
+      type: object
+      description: Color in RGB format
+      properties:
+        r:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Red component
+        g:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Green component
+        b:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Blue component
+      required:
+        - r
+        - g
+        - b
+
+    # ============================================================
+    # Display and Viewport Schemas
+    # ============================================================
+
+    DisplayStatus:
+      type: object
+      description: Current status of the display viewport
+      properties:
+        zoom:
+          $ref: "#/components/schemas/ZoomState"
+        pan:
+          $ref: "#/components/schemas/PanState"
+        image_size:
+          $ref: "#/components/schemas/Point2D"
+          description: Original image dimensions
+        viewport_size:
+          $ref: "#/components/schemas/Point2D"
+          description: Display area dimensions
+        annotations_count:
+          type: integer
+          minimum: 0
+          description: Number of annotations in current view
+      required:
+        - zoom
+        - pan
+
+    ZoomState:
+      type: object
+      description: Current zoom state
+      properties:
+        level:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 10.0
+          description: Current zoom multiplier
+          example: 1.0
+        min_level:
+          type: number
+          format: float
+          default: 0.1
+          description: Minimum allowed zoom level
+        max_level:
+          type: number
+          format: float
+          default: 10.0
+          description: Maximum allowed zoom level
+      required:
+        - level
+
+    PanState:
+      type: object
+      description: Current pan (offset) state
+      properties:
+        offset_x:
+          type: number
+          format: float
+          description: Horizontal pan offset in pixels
+        offset_y:
+          type: number
+          format: float
+          description: Vertical pan offset in pixels
+        min_offset_x:
+          type: number
+          format: float
+          description: Minimum allowed X offset
+        max_offset_x:
+          type: number
+          format: float
+          description: Maximum allowed X offset
+        min_offset_y:
+          type: number
+          format: float
+          description: Minimum allowed Y offset
+        max_offset_y:
+          type: number
+          format: float
+          description: Maximum allowed Y offset
+      required:
+        - offset_x
+        - offset_y
+
+    # ============================================================
+    # Video Stream Schemas
+    # ============================================================
+
+    VideoStreamStatus:
+      type: object
+      description: Current status of the video stream
+      properties:
+        active:
+          type: boolean
+          description: Whether video stream is currently active
+        camera_index:
+          type: integer
+          description: Index of the active camera
+        resolution:
+          $ref: "#/components/schemas/Resolution"
+        frame_available:
+          type: boolean
+          description: Whether a frame is currently available
+        fps:
+          type: number
+          format: float
+          description: Current frames per second
+          example: 30.0
+        flip_horizontal:
+          type: boolean
+          description: Whether horizontal flip is enabled
+        flip_vertical:
+          type: boolean
+          description: Whether vertical flip is enabled
+      required:
+        - active
+        - camera_index
+
+    VideoStreamConfig:
+      type: object
+      description: Configuration for video stream
+      properties:
+        camera_index:
+          type: integer
+          minimum: 0
+          description: Camera device index
+        width:
+          type: integer
+          minimum: 1
+          default: 1280
+          description: Desired frame width
+        height:
+          type: integer
+          minimum: 1
+          default: 720
+          description: Desired frame height
+        fps:
+          type: integer
+          minimum: 1
+          maximum: 120
+          default: 30
+          description: Target frames per second
+      required:
+        - camera_index
+
+    VideoFrame:
+      type: object
+      description: A single video frame
+      properties:
+        width:
+          type: integer
+          description: Frame width in pixels
+        height:
+          type: integer
+          description: Frame height in pixels
+        encoding:
+          type: string
+          enum: [bgr, rgb, jpeg, png]
+          description: Pixel encoding format
+        timestamp:
+          type: string
+          format: date-time
+          description: Frame capture timestamp
+        data:
+          type: string
+          format: byte
+          description: Base64-encoded frame data
+      required:
+        - width
+        - height
+        - encoding
+
+    CameraInfo:
+      type: object
+      description: Information about a camera device
+      properties:
+        index:
+          type: integer
+          description: Camera device index
+        name:
+          type: string
+          description: Camera device name
+        available:
+          type: boolean
+          description: Whether camera is currently available
+        resolutions:
+          type: array
+          description: Supported resolutions
+          items:
+            $ref: "#/components/schemas/Resolution"
+      required:
+        - index
+        - name
+
+    # ============================================================
+    # File Operation Schemas
+    # ============================================================
+
+    FileOpenRequest:
+      type: object
+      description: Request to open a file
+      properties:
+        path:
+          type: string
+          description: File path to open
+          example: "/path/to/document.pdf"
+        format:
+          type: string
+          enum: [auto, image, pdf]
+          default: auto
+          description: Expected file format
+      required:
+        - path
+
+    FileStatus:
+      type: object
+      description: Status of currently open file
+      properties:
+        mode:
+          type: string
+          enum: [webcam, image, pdf]
+          description: Current display mode
+        file_path:
+          type: string
+          description: Path to open file, if any
+        file_size:
+          type: integer
+          description: File size in bytes
+        page_count:
+          type: integer
+          description: Number of pages (for PDFs)
+        current_page:
+          type: integer
+          description: Currently displayed page number (1-based)
+        image_dimensions:
+          $ref: "#/components/schemas/Point2D"
+      required:
+        - mode
+
+    SaveRequest:
+      type: object
+      description: Request to save annotated content
+      properties:
+        path:
+          type: string
+          description: Output file path
+          example: "/path/to/annotated_output.png"
+        format:
+          type: string
+          enum: [png, jpg, pdf]
+          default: png
+          description: Output format
+        include_annotations:
+          type: boolean
+          default: true
+          description: Whether to include annotations
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 95
+          description: Quality (for lossy formats)
+      required:
+        - path
+
+    SaveResult:
+      type: object
+      description: Result of save operation
+      properties:
+        success:
+          type: boolean
+          description: Whether save was successful
+        file_path:
+          type: string
+          description: Path to saved file
+        size:
+          $ref: "#/components/schemas/Point2D"
+          description: Dimensions of saved image
+        bytes_written:
+          type: integer
+          description: Number of bytes written
+      required:
+        - success
+
+    PdfPageInfo:
+      type: object
+      description: Information about PDF page navigation
+      properties:
+        current_page:
+          type: integer
+          description: Currently displayed page (1-based)
+        total_pages:
+          type: integer
+          description: Total number of pages in document
+        page_dimensions:
+          $ref: "#/components/schemas/Point2D"
+          description: Dimensions of current page
+      required:
+        - current_page
+        - total_pages
+
+    # ============================================================
+    # UI Component Schemas
+    # ============================================================
+
+    ToolSelection:
+      type: object
+      description: Tool selection request
+      properties:
+        tool:
+          type: string
+          enum: [none, line, rectangle, circle, freedraw, text, blur, arrow, highlight, selection]
+          description: Tool to activate
+      required:
+        - tool
+
+    ToolStatus:
+      type: object
+      description: Current tool status
+      properties:
+        current_tool:
+          type: string
+          enum: [none, line, rectangle, circle, freedraw, text, blur, arrow, highlight, selection]
+          description: Currently active tool
+        previous_tool:
+          type: string
+          enum: [none, line, rectangle, circle, freedraw, text, blur, arrow, highlight, selection]
+          description: Previously active tool
+      required:
+        - current_tool
+
+    AnnotationSize:
+      type: object
+      description: Annotation dimension settings
+      properties:
+        thickness:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 2
+          description: Line thickness
+        font_size:
+          type: integer
+          minimum: 8
+          maximum: 72
+          default: 20
+          description: Font size for text annotations
+      required: []
+
+    MouseEvent:
+      type: object
+      description: Mouse event in display coordinates
+      properties:
+        x:
+          type: integer
+          description: X coordinate relative to display
+        y:
+          type: integer
+          description: Y coordinate relative to display
+        button:
+          type: integer
+          enum: [1, 2, 3]
+          description: Mouse button (1=left, 2=middle, 3=right)
+        modifiers:
+          type: array
+          description: Active modifier keys
+          items:
+            type: string
+            enum: [shift, ctrl, alt, meta]
+      required:
+        - x
+        - y
+
+    MouseDragEvent:
+      type: object
+      description: Mouse drag operation
+      properties:
+        start_x:
+          type: integer
+          description: Starting X coordinate
+        start_y:
+          type: integer
+          description: Starting Y coordinate
+        current_x:
+          type: integer
+          description: Current X coordinate
+        current_y:
+          type: integer
+          description: Current Y coordinate
+      required:
+        - start_x
+        - start_y
+        - current_x
+        - current_y
+
+    # ============================================================
+    # Configuration Schemas
+    # ============================================================
+
+    AppConfig:
+      type: object
+      description: Application configuration
+      properties:
+        camera:
+          $ref: "#/components/schemas/CameraConfig"
+        display:
+          type: object
+          properties:
+            default_resolution:
+              $ref: "#/components/schemas/Resolution"
+            max_zoom:
+              type: number
+              default: 10.0
+            min_zoom:
+              type: number
+              default: 0.1
+        ui:
+          type: object
+          properties:
+            theme:
+              type: string
+              enum: [light, dark]
+              default: light
+            language:
+              type: string
+              default: "fr"
+      required:
+        - camera
+
+    CameraConfig:
+      type: object
+      description: Camera configuration settings
+      properties:
+        last_camera_index:
+          type: integer
+          description: Last used camera device index
+        brightness:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Camera brightness setting
+        contrast:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Camera contrast setting
+        resolution:
+          $ref: "#/components/schemas/Resolution"
+      required: []
+
+    Resolution:
+      type: object
+      description: Image resolution dimensions
+      properties:
+        width:
+          type: integer
+          minimum: 1
+          description: Width in pixels
+        height:
+          type: integer
+          minimum: 1
+          description: Height in pixels
+      required:
+        - width
+        - height
+      example:
+        width: 1280
+        height: 720
+
+    # ============================================================
+    # State Management Schemas
+    # ============================================================
+
+    HistoryStacks:
+      type: object
+      description: Undo/redo history state
+      properties:
+        undo_stack:
+          type: array
+          description: Stack of undone annotations
+          items:
+            $ref: "#/components/schemas/Annotation"
+        redo_stack:
+          type: array
+          description: Stack of redone annotations
+          items:
+            $ref: "#/components/schemas/Annotation"
+        undo_count:
+          type: integer
+          description: Number of items in undo stack
+        redo_count:
+          type: integer
+          description: Number of items in redo stack
+      required:
+        - undo_stack
+        - redo_stack
+
+    # ============================================================
+    # Response Wrapper Schemas
+    # ============================================================
+
+    ApiResponse:
+      type: object
+      description: Standard API response wrapper
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation succeeded
+        message:
+          type: string
+          description: Human-readable message
+        data:
+          type: object
+          description: Response payload
+        error:
+          type: string
+          description: Error message if operation failed
+      required:
+        - success
+
+    ErrorResponse:
+      type: object
+      description: Error response
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+      required:
+        - error
