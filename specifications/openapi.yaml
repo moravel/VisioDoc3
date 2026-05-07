@@ -86,41 +86,82 @@ paths:
         '200':
           description: Window geometry updated
 
-  /application/closing:
-    post:
-      tags: [Application]
-      summary: Handle application closing
-      description: Gracefully shutdown application and cleanup resources
-      operationId: onClosing
-      responses:
-        '200':
-          description: Application closed successfully
+/application/closing:
+     post:
+       tags: [Application]
+       summary: Handle application closing
+       description: Gracefully shutdown application and cleanup resources
+       operationId: onClosing
+       responses:
+         '200':
+           description: Application closed successfully
 
-  /application/fullscreen:
-    post:
-      tags: [Application]
-      summary: Toggle fullscreen mode
-      description: Switches application window between normal and fullscreen display modes. Press ESC to exit fullscreen.
-      operationId: toggleFullscreen
-      responses:
-        '200':
-          description: Fullscreen mode toggled
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  isFullscreen:
-                    type: boolean
-                    description: Current fullscreen state
-    delete:
-      tags: [Application]
-      summary: Exit fullscreen mode
-      description: Exits fullscreen mode if currently active (ESC key equivalent)
-      operationId: exitFullscreen
-      responses:
-        '200':
-          description: Fullscreen mode exited
+   /application/language:
+     get:
+       tags: [Application]
+       summary: Get current language
+       description: Retrieve the currently active language code
+       operationId: getCurrentLanguage
+       responses:
+         '200':
+           description: Current language code
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/LanguageState'
+     post:
+       tags: [Application]
+       summary: Change application language
+       description: Switch the application language and refresh all UI components
+       operationId: changeLanguage
+       requestBody:
+         required: true
+         content:
+           application/json:
+             schema:
+               type: object
+               properties:
+                 language_code:
+                   type: string
+                   enum: [en, fr]
+                   description: The language code to switch to
+               required:
+                 - language_code
+       responses:
+         '200':
+           description: Language changed successfully
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/LanguageState'
+         '400':
+           description: Invalid language code
+
+   /application/fullscreen:
+     post:
+       tags: [Application]
+       summary: Toggle fullscreen mode
+       description: Switches application window between normal and fullscreen display modes. Press ESC to exit fullscreen.
+       operationId: toggleFullscreen
+       responses:
+         '200':
+           description: Fullscreen mode toggled
+           content:
+             application/json:
+               schema:
+                 type: object
+                 properties:
+                   isFullscreen:
+                     type: boolean
+                     description: Current fullscreen state
+     delete:
+       tags: [Application]
+       summary: Exit fullscreen mode
+       description: Exits fullscreen mode if currently active (ESC key equivalent)
+       operationId: exitFullscreen
+       responses:
+         '200':
+           description: Fullscreen mode exited
 
   /annotations:
     get:
@@ -1812,9 +1853,36 @@ components:
           type: string
           enum: [hybrid, classic]
           description: Layout type
-        toolbar_height:
-          type: integer
-          description: Height of top toolbar in pixels
-        sidebar_width:
-          type: integer
-          description: Width of compact sidebar in pixels
+toolbar_height:
+           type: integer
+           description: Height of top toolbar in pixels
+         sidebar_width:
+           type: integer
+           description: Width of compact sidebar in pixels
+
+     LanguageState:
+       type: object
+       description: Current language state of the application
+       properties:
+         current_language:
+           type: string
+           enum: [en, fr]
+           description: Currently active language code
+           example: "en"
+         available_languages:
+           type: array
+           description: List of available language codes
+           items:
+             type: string
+             enum: [en, fr]
+         language_names:
+           type: object
+           description: Human-readable names for each available language
+           additionalProperties:
+             type: string
+           example:
+             en: "English"
+             fr: "Français"
+       required:
+         - current_language
+         - available_languages

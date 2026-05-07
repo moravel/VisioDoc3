@@ -9,4 +9,14 @@ venv/
 
 # PyInstaller build artifacts
 build/
-dist/specifications/\nopenapi.yaml\ncomponents.yaml
+dist/
+
+# Spec files (keep them, they are small and needed for building)
+# !VisioDoc3.spec
+# !VisioDoc3_linux.spec
+
+# Logs
+*.log
+
+# Local settings
+.settings/

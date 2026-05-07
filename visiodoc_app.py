@@ -341,7 +341,14 @@ class VisioDoc3(tk.Tk):
                 pyi_splash.close()
 
     def on_language_change(self):
-        """Refresh UI when language changes."""
+        """
+        Refresh UI components when the language is changed.
+
+        Updates the window title and refreshes all UI components that contain
+        language-dependent text, including the top toolbar menu labels and
+        the compact sidebar button tooltips. Also triggers tooltip refresh
+        for the classic layout if it's in use.
+        """
         self.title(self.language_manager.tr("app.title"))
         if hasattr(self, "top_toolbar") and self.top_toolbar:
             self.top_toolbar.refresh_labels()

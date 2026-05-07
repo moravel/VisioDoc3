@@ -109,9 +109,14 @@ class TopToolbar(ttk.Frame):
         btn["menu"] = menu
         return btn
 
-    # Refresh all menu labels
-    # Actualise tous les libellés des menus
     def refresh_labels(self):
+        """
+        Refresh all menu button labels with current language translations.
+
+        Updates the text displayed on all menu buttons (File, Annotations, View,
+        Language) to reflect the current language settings. Also triggers updates
+        to the individual menu contents if they have been created.
+        """
         self.menu_buttons["file"].config(
             text=self.language_manager.tr("menus.file.label")
         )
@@ -133,14 +138,31 @@ class TopToolbar(ttk.Frame):
         if self.language_menu:
             self._update_language_menu()
 
-    # Create File menu with open, save, close, and exit options
-    # Crée le menu Fichier avec les options ouvrir, sauvegarder, fermer et quitter
     def _create_file_menu(self, parent):
+        """
+        Create the File menu with file operation options.
+
+        Creates a dropdown menu containing commands for opening, saving,
+        closing files, and exiting the application. The menu items are
+        populated with language-specific labels.
+
+        Args:
+            parent: The parent widget (Menubutton) that owns this menu.
+
+        Returns:
+            tk.Menu: The configured menu widget.
+        """
         self.file_menu = tk.Menu(parent, tearoff=0)
         self._update_file_menu()
         return self.file_menu
 
     def _update_file_menu(self):
+        """
+        Update the File menu contents with current language translations.
+
+        Repopulates the File menu with translated labels for open, save,
+        close, and exit commands based on the current language setting.
+        """
         self.file_menu.delete(0, tk.END)
         lm = self.language_manager
         self.file_menu.add_command(
@@ -162,11 +184,30 @@ class TopToolbar(ttk.Frame):
     # Create Annotations menu with all annotation tool options
     # Crée le menu Annotations avec toutes les options d'outils d'annotation
     def _create_annotate_menu(self, parent):
+        """
+        Create the Annotations menu with annotation tool shortcuts.
+
+        Creates a dropdown menu containing commands for all annotation tools
+        (freedraw, rectangle, circle, line, text, blur, arrow, highlight,
+        selection, color picker, size picker) with keyboard shortcut hints.
+
+        Args:
+            parent: The parent widget (Menubutton) that owns this menu.
+
+        Returns:
+            tk.Menu: The configured menu widget.
+        """
         self.annotate_menu = tk.Menu(parent, tearoff=0)
         self._update_annotate_menu()
         return self.annotate_menu
 
     def _update_annotate_menu(self):
+        """
+        Update the Annotations menu contents with current language translations.
+
+        Repopulates the menu with translated labels for all annotation tools,
+        including keyboard shortcut hints that match the actual shortcuts.
+        """
         self.annotate_menu.delete(0, tk.END)
         lm = self.language_manager
         self.annotate_menu.add_command(
@@ -219,11 +260,29 @@ class TopToolbar(ttk.Frame):
     # Create View menu with zoom, flip, fullscreen, and settings options
     # Crée le menu Affichage avec les options zoom, retournement, plein écran et paramètres
     def _create_view_menu(self, parent):
+        """
+        Create the View menu with display options.
+
+        Creates a dropdown menu containing commands for zoom in/out, flip
+        horizontal/vertical, fullscreen toggle, and settings dialog.
+
+        Args:
+            parent: The parent widget (Menubutton) that owns this menu.
+
+        Returns:
+            tk.Menu: The configured menu widget.
+        """
         self.view_menu = tk.Menu(parent, tearoff=0)
         self._update_view_menu()
         return self.view_menu
 
     def _update_view_menu(self):
+        """
+        Update the View menu contents with current language translations.
+
+        Repopulates the menu with translated labels for zoom, flip, fullscreen,
+        and settings commands.
+        """
         self.view_menu.delete(0, tk.END)
         lm = self.language_manager
         self.view_menu.add_command(
@@ -254,11 +313,29 @@ class TopToolbar(ttk.Frame):
     # Create Language menu with language options
     # Crée le menu Langue avec les options de langue
     def _create_language_menu(self, parent):
+        """
+        Create the Language menu with language selection options.
+
+        Creates a dropdown menu containing commands to switch between
+        available languages (French and English).
+
+        Args:
+            parent: The parent widget (Menubutton) that owns this menu.
+
+        Returns:
+            tk.Menu: The configured menu widget.
+        """
         self.language_menu = tk.Menu(parent, tearoff=0)
         self._update_language_menu()
         return self.language_menu
 
     def _update_language_menu(self):
+        """
+        Update the Language menu contents with current language translations.
+
+        Repopulates the menu with translated labels for French and English
+        language selection options.
+        """
         self.language_menu.delete(0, tk.END)
         lm = self.language_manager
         self.language_menu.add_command(
@@ -273,6 +350,15 @@ class TopToolbar(ttk.Frame):
     # Change language and refresh UI
     # Change la langue et rafraîchit l'interface
     def _change_language(self, lang_code: str):
+        """
+        Change the application language and refresh the UI.
+
+        Switches the language manager to the specified language code and
+        triggers a refresh of all UI components to display translated text.
+
+        Args:
+            lang_code (str): The language code to switch to ('en' or 'fr').
+        """
         if self.language_manager.set_language(lang_code):
             self.refresh_labels()
             if hasattr(self.app, "on_language_change"):
@@ -281,6 +367,17 @@ class TopToolbar(ttk.Frame):
     # Update camera menu with available cameras
     # Met à jour le menu de caméra avec les caméras disponibles
     def update_cameras(self, camera_options: List[Tuple[str, int]]):
+        """
+        Update the camera dropdown menu with available camera devices.
+
+        Repopulates the webcam dropdown with the list of detected cameras,
+        sorted by index for consistent ordering. Displays a disabled
+        "No cameras found" message if the list is empty.
+
+        Args:
+            camera_options (List[Tuple[str, int]]): List of tuples
+                containing (camera_name, camera_index) for each detected camera.
+        """
         if self.camera_menu:
             self.camera_menu.delete(0, tk.END)
 
@@ -303,4 +400,13 @@ class TopToolbar(ttk.Frame):
     # Update status text displayed in the toolbar
     # Met à jour le texte de statut affiché dans la barre d'outils
     def update_status(self, text: str):
+        """
+        Update the status text displayed in the top toolbar.
+
+        Displays a brief status message in the right side of the toolbar
+        to provide user feedback about current operations or state.
+
+        Args:
+            text (str): The status message to display.
+        """
         self.status_label.config(text=text)

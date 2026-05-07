@@ -11,22 +11,60 @@ from ui.language_manager import get_language_manager
 # TooltipInfo class to store per-button tooltip data
 # Classe TooltipInfo pour stocker les données d'info-bulle par bouton
 class TooltipInfo:
+    """
+    Stores tooltip data for a sidebar button.
+
+    Manages the tooltip text display for a specific button widget,
+    allowing the text to be dynamically updated when the language changes.
+    """
+
     def __init__(self, widget, tooltip_key, fallback):
+        """
+        Initialize the TooltipInfo with widget and translation key.
+
+        Args:
+            widget: The Tkinter widget that will display the tooltip.
+            tooltip_key (str): Translation key for the tooltip text.
+            fallback (str): Fallback text if translation is not found.
+        """
         self.widget = widget
         self.tooltip_key = tooltip_key
         self.fallback = fallback
         self.text_var = tk.StringVar()
 
     def update_text(self, language_manager):
+        """
+        Update the tooltip text based on current language.
+
+        Retrieves the translated text from the language manager and updates
+        the internal StringVar used for display.
+
+        Args:
+            language_manager: The LanguageManager instance for translation lookup.
+        """
         self.text_var.set(language_manager.tr(self.tooltip_key, self.fallback))
 
     def get_text(self):
+        """
+        Get the current tooltip text.
+
+        Returns:
+            str: The current tooltip text value.
+        """
         return self.text_var.get()
 
 
 # Ultra-thin icon-only sidebar with tooltips for VisioDoc3
 # Barre latérale ultra-fine avec icônes uniquement et info-bulles pour VisioDoc3
 class CompactSidebar(ttk.Frame):
+    """
+    Ultra-thin sidebar with icon-only buttons for VisioDoc3.
+
+    Provides a compact toolbar containing categorized tool buttons for
+    annotation, display control, file operations, and actions. Each button
+    displays a tooltip on hover with the tool name in the current language.
+    """
+
     # Initializes the compact sidebar with icons and command mappings
     # Initialise la barre latérale compacte avec les icônes et les mappages de commandes
     def __init__(
@@ -38,6 +76,23 @@ class CompactSidebar(ttk.Frame):
         language_manager=None,
         **kwargs,
     ):
+        """
+        Initialize the CompactSidebar with icons and command callbacks.
+
+        Sets up the sidebar frame with buttons for all annotation tools,
+        display controls, file operations, and action buttons. Each button
+        is configured with appropriate icons and tooltips.
+
+        Args:
+            parent: The parent widget.
+            icons (Dict): Dictionary mapping tool keys to PhotoImage objects.
+            commands (Dict[str, Callable]): Dictionary mapping action names
+                to callback functions.
+            app: Reference to the main application instance.
+            language_manager: Optional LanguageManager instance for translations.
+                Uses the global singleton if not provided.
+            **kwargs: Additional keyword arguments passed to ttk.Frame.
+        """
         super().__init__(parent, width=48, **kwargs)
         self.icons = (
             icons  # Dictionary of icon images / Dictionnaire des images d'icônes
@@ -59,6 +114,18 @@ class CompactSidebar(ttk.Frame):
     # Build icon-only sidebar with categorized button groups
     # Construit la barre latérale avec icônes uniquement avec des groupes de boutons catégorisés
     def _build_sidebar(self):
+        """
+        Build the icon-only sidebar with categorized button groups.
+
+        Creates and arranges all sidebar buttons organized by function:
+        - Annotation tools (freedraw, rectangle, circle, line, text, blur, arrow, highlight, selection)
+        - Color and size pickers
+        - Display controls (flip, fullscreen)
+        - File operations (open, close)
+        - Action buttons (undo, redo, save, clear)
+
+        Separators are added between functional groups for visual organization.
+        """
         # Build icon-only sidebar
         # Construit la barre latérale avec icônes uniquement
         # Tool button mapping - annotation tools
@@ -237,6 +304,17 @@ class CompactSidebar(ttk.Frame):
     # Add tooltip on hover to a widget
     # Ajoute une info-bulle au survol d'un widget
     def _add_tooltip(self, widget, tooltip_info: TooltipInfo):
+        """
+        Add hover-triggered tooltip functionality to a widget.
+
+        Binds mouse enter and leave events to show and hide a tooltip window
+        containing the translated tooltip text for the associated button.
+
+        Args:
+            widget: The Tkinter widget to attach tooltip behavior to.
+            tooltip_info (TooltipInfo): The TooltipInfo object containing
+                the text and translation key for this tooltip.
+        """
         """Add tooltip on hover."""
 
         def show_tooltip(event):
@@ -267,6 +345,12 @@ class CompactSidebar(ttk.Frame):
     # Refresh tooltips when language changes
     # Actualise les info-bulles lors du changement de langue
     def refresh_tooltips(self):
+        """
+        Refresh all tooltip texts with current language translations.
+
+        Iterates through all stored TooltipInfo objects and calls their
+        update_text method to retrieve new translations in the current language.
+        """
         """Update all tooltip texts based on current language."""
         for tool_key, tooltip_info in self.tooltip_infos.items():
             tooltip_info.update_text(self.language_manager)

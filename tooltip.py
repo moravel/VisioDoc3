@@ -26,12 +26,13 @@ class Tooltip:
 
     def set_text(self, text):
         """
-        Updates the tooltip text.
-        Met à jour le texte de l'info-bulle.
+        Update the tooltip text with a new value.
+
+        Changes the text displayed in the tooltip to the provided value. If the
+        tooltip window is currently visible, the label inside is updated immediately.
 
         Args:
             text (str): The new text to display in the tooltip.
-                        Le nouveau texte à afficher dans l'info-bulle.
         """
         self.text = text
         if self.tooltip_window:

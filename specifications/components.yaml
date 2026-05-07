@@ -1029,8 +1029,62 @@ components:
         code:
           type: string
           description: Error code
-        details:
-          type: object
-          description: Additional error details
-      required:
-        - error
+details:
+           type: object
+           description: Additional error details
+       required:
+         - error
+
+     # ============================================================
+     # Language Schemas
+     # ============================================================
+
+     Language:
+       type: object
+       description: Language configuration and state for internationalization
+       properties:
+         current_language:
+           type: string
+           enum: [en, fr]
+           description: Currently active language code
+           example: "en"
+         available_languages:
+           type: array
+           description: List of language codes that have been loaded
+           items:
+             type: string
+             enum: [en, fr]
+         translations:
+           type: object
+           description: The full translation dictionary for the current language
+           additionalProperties:
+             type: string
+         ui_direction:
+           type: string
+           enum: [ltr, rtl]
+           description: UI text direction for the language
+           default: ltr
+       required:
+         - current_language
+         - available_languages
+
+     LanguageConfig:
+       type: object
+       description: Language configuration settings
+       properties:
+         default_language:
+           type: string
+           enum: [en, fr]
+           default: en
+           description: Default language to use on startup
+         fallback_language:
+           type: string
+           enum: [en, fr]
+           default: en
+           description: Fallback language if translation is missing
+         languages_directory:
+           type: string
+           description: Path to the directory containing language YAML files
+           default: "config/languages"
+       required:
+         - default_language
