@@ -1,35 +1,34 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+block_cipher = None
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('icons', 'icons'), ('ui', 'ui'), ('config', 'config')],
-    hiddenimports=['PIL._tkinter_finder', 'PIL.ImageTk'],
+    datas=[
+        ('config/languages', 'config/languages'),
+        ('icons', 'icons'),
+    ],
+    hiddenimports=['yaml', 'PIL._tkinter_finder'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['pyi_splash'],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
 )
-pyz = PYZ(a.pure)
-splash = Splash(
-    'icons/logoVisioDoc3.png',
-    binaries=a.binaries,
-    datas=a.datas,
-    text_pos=None,
-    text_size=12,
-    minify_script=True,
-    always_on_top=True,
-)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
+    a.zipfiles,
     a.datas,
-    splash,
-    splash.binaries,
     [],
     name='VisioDoc3',
     debug=False,
@@ -44,5 +43,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icons/logoVisioDoc3.png'],
 )
