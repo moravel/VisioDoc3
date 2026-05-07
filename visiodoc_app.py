@@ -1379,7 +1379,7 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
 
         # Schedule the next update after 10 milliseconds (approx 100 FPS, but limited by camera/processing)
         # Planifie la prochaine mise à jour après 10 millisecondes (environ 100 FPS, mais limité par la caméra/le traitement)
-        self.after(10, self.update_display)
+        self._update_id = self.after(33, self.update_display)
 
     def display_image(self, pil_image):
         """
@@ -1392,10 +1392,10 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         """
         # Create a copy of the image to draw on without modifying the original source
         # Crée une copie de l'image pour dessiner sans modifier la source originale
-        display_image = pil_image.copy()
+        display_image_np = np.array(pil_image)
         # Convert PIL RGB image to OpenCV BGR format for drawing with cv2
         # Convertit l'image PIL RGB en format OpenCV BGR pour dessiner avec cv2
-        display_image_cv = cv2.cvtColor(np.array(display_image), cv2.COLOR_RGB2BGR)
+        display_image_cv = cv2.cvtColor(display_image_np, cv2.COLOR_RGB2BGR)
 
         # Draw all existing annotations on the OpenCV frame
         # Dessine toutes les annotations existantes sur le cadre OpenCV
