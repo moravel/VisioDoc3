@@ -1,5 +1,7 @@
 # VisioDoc3 - Présentation pour les établissements scolaires
 
+![VisioDoc3 Logo](./screenshots/logoVisioDoc3.png)
+
 ## 🎯 Présentation générale
 
 **VisioDoc3** est une application de **visualisation et d'annotation de documents en temps réel** conçue spécifiquement pour les besoins éducatifs. Elle permet de capturer l'image d'une webcam et d'y ajouter des annotations pédagogiques interactives.
@@ -11,6 +13,14 @@
 - **Démonstrations scientifiques** : Visualiser et annoter des expériences en laboratoire
 - **Classes inversées** : Créer des supports de cours annotés à partir de documents
 - **Accessibilité** : Ajouter des repères visuels pour les élèves en situation de handicap
+
+## 🖼️ Capture d'écran
+
+![Interface VisioDoc3](./screenshots/interface1.png)
+*Vue principale avec la sidebar et la barre d'outils*
+
+![Exemple d'utilisation](./screenshots/Exemple_Visionneuse.jpg)
+*Exemple d'annotation en contexte scolaire*
 
 ## ✨ Fonctionnalités clés
 

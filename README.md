@@ -48,7 +48,8 @@ VisioDoc3 features a modern hybrid interface with a compact sidebar and top tool
 
 - **Canvas Area**: Central workspace displaying the live webcam feed with overlaid annotations.
 
-![](./screenshots/interface.png)
+![](./screenshots/interface1.png)
+![](./screenshots/interface2.png)
 
 ### Keyboard Shortcuts
 
@@ -70,6 +71,11 @@ VisioDoc3 features a modern hybrid interface with a compact sidebar and top tool
 | Ctrl++ | Zoom in |
 | Ctrl+- | Zoom out |
 | F11 | Toggle fullscreen |
+
+### Screenshot
+
+![](./screenshots/Exemple_Visionneuse.jpg)
+
 
 ## User Manual
 
