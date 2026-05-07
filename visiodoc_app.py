@@ -229,10 +229,10 @@ class VisioDoc3(tk.Tk):
                 "selection",
                 "delete",
                 "help",
-              "open_file",
-              "close_file",
-              "flip_horizontal",
-              "flip_vertical",
+                "open_file",
+                "close_file",
+                "flip_horizontal",
+                "flip_vertical",
                 "fullscreen",
                 "webcam",
             ]
@@ -366,13 +366,13 @@ class VisioDoc3(tk.Tk):
             "redo_last_annotation": self.redo_last_annotation,
             "save_image": self.save_image,
             "clear_all_annotations": self.clear_all_annotations,
-             "choose_annotation_color": self.choose_annotation_color,
-             "choose_annotation_size": self.choose_annotation_size,
-             "flip_horizontal": self.flip_horizontal,
-             "flip_vertical": self.flip_vertical,
-             "toggle_fullscreen": self.toggle_fullscreen,
-             "open_file": self.open_file,
-             "close_file": self.close_file,
+            "choose_annotation_color": self.choose_annotation_color,
+            "choose_annotation_size": self.choose_annotation_size,
+            "flip_horizontal": self.flip_horizontal,
+            "flip_vertical": self.flip_vertical,
+            "toggle_fullscreen": self.toggle_fullscreen,
+            "open_file": self.open_file,
+            "close_file": self.close_file,
         }
         self.compact_sidebar = CompactSidebar(
             self.main_frame, self.icons, commands, app=self, style="Modern.TFrame"
@@ -1137,10 +1137,10 @@ Pour toute autre question ou problème, veuillez consulter la documentation du p
         if hasattr(self, "top_toolbar") and self.top_toolbar is not None:
             self.top_toolbar.update_cameras(self.camera_options)
 
-        # Only handle placeholder/camera menu for classic layout
-        if not self.use_hybrid_layout:
-            self.camera_menu_placeholder.pack_forget()  # Remove the "Searching for cameras..." placeholder / Supprime l'espace réservé "Recherche de caméras en cours..."
+        # Hide the placeholder in all layouts since camera menu is handled separately
+        self.camera_menu_placeholder.pack_forget()
 
+        if not self.use_hybrid_layout:
             if (
                 self.camera_options
             ):  # If cameras were found / Si des caméras ont été trouvées
