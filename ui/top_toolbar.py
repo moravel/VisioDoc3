@@ -150,10 +150,10 @@ class TopToolbar(ttk.Frame):
                     label=name,
                     command=lambda i=index: self.app.select_camera_by_index(i),
                 )
-            self.camera_btn.config(text="Webcam ▼")
+            self.camera_btn.config(text="Webcam")
         else:
             self.camera_menu.add_command(label="Aucune webcam trouvée", state="disabled")
-            self.camera_btn.config(text="Webcam ✕")
+            self.camera_btn.config(text="Webcam")
 
     def update_status(self, text: str):
         """Update status text."""
