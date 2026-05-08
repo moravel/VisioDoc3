@@ -72,7 +72,7 @@ VisioDoc3 features a modern hybrid interface with a compact sidebar and top tool
 | Ctrl+- | Zoom out |
 | F11 | Toggle fullscreen |
 
-### Screenshot
+### exemple of material 
 
 ![](./screenshots/Exemple_Visionneuse.jpg)
 
